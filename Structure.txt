@@ -1,5 +1,11 @@
 Presentation is on 7/1/16
 
+! code that can be used for offline or real time
+! make the music that brings it all together?
+ * maybe make the music as we go? i dunno...
+? likely need to talk about how to put it all together timing wise?
+ * time signatures and sample timing calculations?
+ * sample rate? would fit w/ nyquist frequency talking.
 
 Presentation
  * title / background music? explaining that bg music was made with the things being talked about.
@@ -70,7 +76,7 @@ Presentation
  * closing slide
   * shadertoy -> lets you do audio
   * my blog -> more audio synth info there now and future content
-  * where to get code from presentation
+  * where to get code from presentation -> https://github.com/Atrix256/MusicSynth
 
 
 
