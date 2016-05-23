@@ -1,0 +1,106 @@
+Presentation is on 7/1/16
+
+
+Presentation
+ * title / background music? explaining that bg music was made with the things being talked about.
+ * What is audio data?
+  * usually from -1.0 to 1.0. (*HDR audio, non floating point, etc)
+  * changes in values are what makes sounds, a constant value is silence, no matter what the value is.
+   * show?
+  * sound = pressure waves in the air, so speaker needs to move to make changes in pressure.
+  * sound value dictates what position the speaker should be at.
+  ! obviously, best speakers can move to their correct location as quickly and as precisely as possible, but the reality is that this perfection isn't possible.
+   * lower frequencies have to push more air around = more work physically = need more wattage.
+   * higher frequencies have to move faster.
+   * worse speakers can lose high or low frequencies both, or cause distortion by adding frequencies that shouldn't be there, or by just playing the wrong frequencies all together
+   * coaxial speakers have a bigger speaker for low frequencies and a smaller speaker for high frequencies.
+ * sine wave = gently changing up and down.  all audio data is made of sine waves.
+  * show
+ * more sine waves per second = higher frequency, fewer sine waves per second = lower frequency.
+  * show
+ * envelopes
+  * show a few examples
+ * clipping
+  * show
+ * mixing
+  * show. 
+  * avoid clipping.  peaks and valleys tend to keep things in range usually.  usually a manual process to keep levels correct.  hard in interactive situations though! compressor / limiter topic later.
+ * note sliding / popping
+  * show
+  * free spinning oscilators
+ * common wave forms: square, saw, triangle.
+  * show
+  * comapre / contrast triangle and sine. triangle was an aproximation of sine.
+ * nyquist frequency / bandlimited forms / additive synthesis
+  * show bandlimited wave forms made via additive synthesis
+  * can add them together in various amplitudes to make other sounds.
+ * vibrato & tremolo
+  * show
+ * AM synth
+  * show
+ * FM synth
+  * show
+ * delay (echo)
+  * show
+ * reverb
+  * show
+  * talk about convolution reverb and multitap.  Do multitap for now?
+ * flange
+  * show
+  * talk about sub-sample interpolation.  I use linear, but could do sync, cubic hermite, whatever else you wanted for higher quality.
+ * basic percussion sounds
+  * show
+  * mention could use sound clips as well
+ * talk about compressors and limiters
+  * show in action w/ percussion sounds.
+  * mention we do this in heroes
+  * mention battlefield's HDR audio system
+ * basic LPF and HPF
+  * show how they sound
+  * apply to echo or something too
+  * mention biquads and IIR / FIR?
+  * subtractive synthesis: carve a block.  Can only reveal what's there.  Different wave forms have or are missing different frequencies, at different amplitudes.
+ * positional audio?
+  * using delay per ear more than volume
+ * mention 303 with a sound clip?
+ * real time vs offline
+  * how many ms to not feel a delay? was it 7ms?
+  * better effects in offline processing, and can even look into future for cooler sounding effects (like a reverse echo)
+ * FFT / IFFT? do we care
+ * closing slide
+  * shadertoy -> lets you do audio
+  * my blog -> more audio synth info there now and future content
+  * where to get code from presentation
+
+
+
+Topics:
+ * audio samples: the delta is what counts, not absolute value
+  * amplitude vs db?
+ * common wave forms (sine, square, saw, triangle)
+ * popping (but useful in some sounds sometimes)
+ * clipping (but useful for distortion sounds)
+ * bandlimited wave forms and nyquist frequency
+ * additive synthesis and mixing
+ * vibrato & tremolo effects
+ * AM / FM synth basics
+ * basic percussion sounds
+ * delay (echo) and reverb
+ * flange
+  * also quick mention of interpolation stuff? linear works for me but...
+ * basic filtering and subtractive synthesis
+ * dynamics processing (automatic volume adjustments)
+  ? HDR audio stuff?
+  * simulating in heroes.
+ * real time playback vs offline concerns (speed, and buffering causing latency).
+  * how many ms does a musician need to make something not feel laggy? was it 7ms?
+ * positional audio? using delay per ear more than volume
+ * envelopes
+ * note sliding
+ ? mention shadertoy lets you program audio?
+ ! library / programs to do live and offline stuff
+ ? mention fft type stuff? quickly, along with pros and cons?
+
+ ! more info on my blog
+  * http://blog.demofox.org/category/audio-synthesis/
+ 
