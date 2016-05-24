@@ -1,86 +1,166 @@
 Presentation is on 7/1/16
 
-! code that can be used for offline or real time
+! code that can be used for offline or real time both?
+ * maybe modes should be:
+  * real time play
+  * real time play + record as wav
+  * non real time record as wav
+ * maybe more work than is needed
+
 ! make the music that brings it all together?
  * maybe make the music as we go? i dunno...
-? likely need to talk about how to put it all together timing wise?
- * time signatures and sample timing calculations?
- * sample rate? would fit w/ nyquist frequency talking.
 
-Presentation
+
+
+Presentation Outline:
+
+--1--
  * title / background music? explaining that bg music was made with the things being talked about.
+
+--2--
  * What is audio data?
   * usually from -1.0 to 1.0. (*HDR audio, non floating point, etc)
   * changes in values are what makes sounds, a constant value is silence, no matter what the value is.
-   * show?
   * sound = pressure waves in the air, so speaker needs to move to make changes in pressure.
   * sound value dictates what position the speaker should be at.
-  ! obviously, best speakers can move to their correct location as quickly and as precisely as possible, but the reality is that this perfection isn't possible.
-   * lower frequencies have to push more air around = more work physically = need more wattage.
-   * higher frequencies have to move faster.
-   * worse speakers can lose high or low frequencies both, or cause distortion by adding frequencies that shouldn't be there, or by just playing the wrong frequencies all together
-   * coaxial speakers have a bigger speaker for low frequencies and a smaller speaker for high frequencies.
+  * better speakers are able get to the right places the samples specify more quickly and more accurately.  worse speakers end up with wrong frequencies.
+  * resolution:
+   * x axis = sample rate. samples per second.
+   * y axis = bit depth. bits per sample.
+   * may also have multiple channels (like, stereo) data interleaved.
+
+--3--
  * sine wave = gently changing up and down.  all audio data is made of sine waves.
-  * show
  * more sine waves per second = higher frequency, fewer sine waves per second = lower frequency.
-  * show
- * envelopes
+  * show sine tones at diff frequencies
+  * demo: press buttons to change frequencies from low to high
+
+--4--
+ * Note sliding and popping: free spinning oscilators vs not.  audio needs to be smooth!
+  * show playing notes one after the other, having popping
+  * demo: let people hear it
+  * show the fix: free spinning oscilator
+  * show note sliding
+  * demo: let people hear it with popping and without.
+
+--5--
+ * clipping: when things get too high or low, it clips then, making distortion.
+  * show clipped sine tones at different volumes
+  * sometimes desired though.  Electric guitar distortion takes it's roots from this for instance.
+  * demo: play some clipped notes.  adjust volume to make more or less clipping?
+
+--6--
+ * Mixing: add values together to mix them together and make them both be able to be heard!
+  * don't thinks clip? in practice it takes quite a bit to make that happen! manual process to correct levels though. although you can do "automatic volume adjustments" both in real time and "offline" with limiters and compressors
+  * demo: polyphonic tones with a decently long envelope. maybe some w/ extra long envelope and cause clipping? button to silence it :P
+
+--7--
+ * Envelopes
   * show a few examples
- * clipping
-  * show
- * mixing
-  * show. 
-  * avoid clipping.  peaks and valleys tend to keep things in range usually.  usually a manual process to keep levels correct.  hard in interactive situations though! compressor / limiter topic later.
- * note sliding / popping
-  * show
-  * free spinning oscilators
- * common wave forms: square, saw, triangle.
-  * show
-  * comapre / contrast triangle and sine. triangle was an aproximation of sine.
- * nyquist frequency / bandlimited forms / additive synthesis
-  * show bandlimited wave forms made via additive synthesis
-  * can add them together in various amplitudes to make other sounds.
- * vibrato & tremolo
-  * show
- * AM synth
-  * show
- * FM synth
-  * show
- * delay (echo)
-  * show
- * reverb
-  * show
-  * talk about convolution reverb and multitap.  Do multitap for now?
- * flange
-  * show
-  * talk about sub-sample interpolation.  I use linear, but could do sync, cubic hermite, whatever else you wanted for higher quality.
- * basic percussion sounds
-  * show
-  * mention could use sound clips as well
- * talk about compressors and limiters
-  * show in action w/ percussion sounds.
-  * mention we do this in heroes
+  * demo: demo a few examples
+
+--8--
+ * Common wave forms
+  * show square, saw, triangle and sine
+  * demo: each wave form.  point out how similar sine and triangle are.  triangle was used because sine was too costly to compute.
+
+--9--
+ * Aliasing
+  * nyquist frequency
+  * bandlimited wave forms (w/ equations?)
+  * mention additive synthesis being a way of building up a sound from nothing by adding things together.
+  * demo: bandlimited vs not wave forms.
+
+--10--
+ * Tremolo & Vibrato
+  * Tremolo: modify amplitude on a low frequency sine wave
+  * Vibrato: modify frequency on a low frequency sine wave
+  * (modular synth = plug anything into anything else, so like, you could plug a saw wave into vibrato etc)
+  * demo: some notes with vibrato, some notes with tremolo
+
+--11--
+ * Amplitude Modulation Synthesis (AM Synth)
+  * Bring tremolo up to audible frequencies!
+  * show: what does this wave form look like?
+  * demo: play some AM synth notes
+
+--12--
+ * Frequency Modulation Synthesis (FM Synth)
+  * bring vibrato up to audible frequencies!
+  * show: book about it, talk about complexities
+  * demo: play some FM synth notes
+
+--13--
+ * Delay (echo)
+  * talk about having a buffer of the right number of samples with some feedback volume.  Circular buffer.
+  * demo: play some notes that are aligned to timing, and some that aren't.
+
+--14--
+ * Reverb
+  * explain multitap.  mention convolution reverb.  Reference blog post on how to do it.
+  * demo: play some sweet sweet notes with multitap reverb
+
+--15--
+ * Flange
+  * explain origins.  explain how to simulate.  talk about sub sample interpolation.  linear, cubic hermite, sync, etc.
+  * demo: wave forms with flange.
+
+--16--
+ * Basic Drum
+  * explain how to do it.
+  * demo: step by step to improve it's sound.
+  * mention you could use sound clips
+
+--17--
+ * Automatic volume adjustments
+  * briefly explain compressors and limiters
+  * useful for keeping things from clipping
+  * also useful to make things "pop out" more. 
+  * demo: drums with side chain
+  * mention that we do this in heroes
   * mention battlefield's HDR audio system
- * basic LPF and HPF
-  * show how they sound
-  * apply to echo or something too
-  * mention biquads and IIR / FIR?
-  * subtractive synthesis: carve a block.  Can only reveal what's there.  Different wave forms have or are missing different frequencies, at different amplitudes.
- * positional audio?
-  * using delay per ear more than volume
- * mention 303 with a sound clip?
+
+--18--
+ * cymbal from static?
+  * a 5th common wave form: "noise"
+  * show how to use an envelope to make the noise meaningful
+  * demo: play some drums and symbols
+
+--19--
+ * Basic LPF and HPF
+  * demo: how they sound
+  * demo: use them in echo?
+  * mention: biquads, IIR/FIR.
+  * mention: subtractive synth: use filters to carve the block.  different wave forms have different frequencies at different amplitudes so sound differently when filtered.
+
+--20--
+ * Positional sound
+  * delay per ear more important than volume changes
+  * demo: some 3d sound? does it make sense to do in a large room?  maybe not...
+
+--21--
  * real time vs offline
   * how many ms to not feel a delay? was it 7ms?
   * better effects in offline processing, and can even look into future for cooler sounding effects (like a reverse echo)
- * FFT / IFFT? do we care
+
+-- 22--
  * closing slide
   * shadertoy -> lets you do audio
   * my blog -> more audio synth info there now and future content
   * where to get code from presentation -> https://github.com/Atrix256/MusicSynth
 
+-- stretch topics
+ * mention 303 and 707 with a sound clip?
+ * FFT / IFFT? do we care? maybe drop this
+ * 8 bit music: I'm not an expert, but the sound isn't from being "8 bit".  low sample rate starts to sound like it, but more in faked chords by playing very short notes in a row?
+ * arpegiators
+ * automatic note timing fixing (to get timing more correct)
+ * decibels vs amplitude
+ * converting timing (like in 4/4, im on note 3, bar 5) to be a sample number
+ * stereo sounds or higher
 
-
-Topics:
+==============================================
+Topics Brainstorm:
  * audio samples: the delta is what counts, not absolute value
   * amplitude vs db?
  * common wave forms (sine, square, saw, triangle)
