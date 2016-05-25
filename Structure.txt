@@ -6,6 +6,8 @@ Presentation is on 7/1/16
   * real time play + record as wav
   * non real time record as wav
  * maybe more work than is needed
+ * maybe just a quick example of how to write a wave file?
+  * or point to blog that explains how to do it
 
 ! make the music that brings it all together?
  * maybe make the music as we go? i dunno...
