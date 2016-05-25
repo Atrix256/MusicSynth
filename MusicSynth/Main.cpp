@@ -2,9 +2,31 @@
 #include "PortAudio/include/portaudio.h"
 #include <cmath>
 
+static const float c_pi = 3.14159265359f;
+
 // audio data needed by the audio sample generator
 float               g_sampleRate = 0.0f;
 static const size_t g_numChannels = 2;
+
+//--------------------------------------------------------------------------------------------------
+inline static float SawWave (float phase) {
+    return phase * 2.0f - 1.0f;
+}
+
+//--------------------------------------------------------------------------------------------------
+inline static float SineWave (float phase) {
+    return std::sinf(phase * 2.0f * c_pi);
+}
+
+//--------------------------------------------------------------------------------------------------
+inline static float SquareWave (float phase) {
+    return phase >= 0.5f ? 1.0f : -1.0f;
+}
+
+//--------------------------------------------------------------------------------------------------
+inline static float TriangleWave (float phase) {
+    return std::abs(phase - 0.5f) * 4.0f - 1.0f;
+}
 
 //--------------------------------------------------------------------------------------------------
 static int GenerateAudioSamples (
@@ -17,23 +39,26 @@ static int GenerateAudioSamples (
 ) {
     static float phase = 0.5f;
 
-    static const float frequency = 1000.0f;
+    static const float frequency = 500.0f;
     static const float phaseAdvance = frequency / g_sampleRate;
-
-    phase += phaseAdvance;
-    phase = std::fmod(phase, 1.0f);
     
     float *out = (float*)outputBuffer;
     for (unsigned long sample = 0; sample < framesPerBuffer; ++sample, out = &out[g_numChannels]) {
         
-        float value = phase * 2.0 - 1.0;
+        float value = SineWave(phase);
+        phase += phaseAdvance;
+        phase = std::fmod(phase, 1.0f);
 
         for (int channel = 0; channel < g_numChannels; ++channel)
             out[channel] = value;
     }
 
     return paContinue;
-    // TODO: make it so you can record this to disk too as a wave file.  You can then show what's going wrong where. You can also fix this problem!
+    // TODO: make it so you can record to disk as a wave file?
+    // good debugging and visualization tool
+    // maybe a key to toggle recording on and off?
+
+    // TODO: maybe move all the port audio init stuff to another file.  Pass it a function point to call to generate samples. Hide that complexity.
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -87,11 +112,11 @@ int main (int argc, char **argv)
     PaStream* stream = nullptr;
     err = Pa_OpenStream(
         &stream,
-        nullptr, /* no input */
+        nullptr,
         &outputParameters,
         deviceInfo->defaultSampleRate,
         0,
-        paClipOff,      /* we won't output out of range samples so don't bother clipping them */
+        0,
         GenerateAudioSamples,
         nullptr
     );
