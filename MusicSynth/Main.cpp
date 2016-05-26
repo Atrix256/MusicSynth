@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include "PortAudio/include/portaudio.h"
 #include "Music.h"
+#include <Windows.h>
 
 // audio data needed by the audio sample generator
 float               g_sampleRate = 0.0f;
@@ -106,6 +107,16 @@ int main (int argc, char **argv)
         printf("Pa_StartStream returned error: %i\n", err);
         return err;
     }
+
+    BYTE keyState1[256];
+    BYTE keyState2[256];
+
+    BYTE* oldKeyState = keyState1;
+    BYTE* newKeyState = keyState2;
+
+    GetKeyboardState(oldKeyState);
+
+
 
     // main loop for music demos
     MusicDemosMain();
