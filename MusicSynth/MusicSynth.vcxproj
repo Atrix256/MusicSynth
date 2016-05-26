@@ -68,11 +68,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Demo2_Popping.cpp" />
+    <ClCompile Include="DemoMgr.cpp" />
+    <ClCompile Include="Demo1_Sine.cpp" />
     <ClCompile Include="Main.cpp" />
-    <ClCompile Include="Music.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Music.h" />
+    <ClInclude Include="AudioUtils.h" />
+    <ClInclude Include="DemoList.h" />
+    <ClInclude Include="DemoMgr.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

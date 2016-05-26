@@ -12,12 +12,21 @@ Presentation is on 7/1/16
 ! make the music that brings it all together?
  * maybe make the music as we go? i dunno...
 
+! note that keyboards are bad at pressing multiple keys at once.
+ * keyboardsareevil.com
 
+! make the demo 0_BGMusic
+
+! make sure video recording and room will pick up audio ok.
+ * talk to paul haban.
+
+? should we do a stereo demo? not sure if will work in room. should try
 
 Presentation Outline:
 
 --1--
  * title / background music? explaining that bg music was made with the things being talked about.
+ * DEMO = 0_BGMusic
 
 --2--
  * What is audio data?
@@ -36,6 +45,7 @@ Presentation Outline:
  * more sine waves per second = higher frequency, fewer sine waves per second = lower frequency.
   * show sine tones at diff frequencies
   * demo: press buttons to change frequencies from low to high
+  * DEMO = 1_Sine
 
 --4--
  * Note sliding and popping: free spinning oscilators vs not.  audio needs to be smooth!
@@ -44,6 +54,7 @@ Presentation Outline:
   * show the fix: free spinning oscilator
   * show note sliding
   * demo: let people hear it with popping and without.
+  * DEMO = 2_Popping
 
 --5--
  * clipping: when things get too high or low, it clips then, making distortion.

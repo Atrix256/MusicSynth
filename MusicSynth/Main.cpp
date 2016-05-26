@@ -1,19 +1,24 @@
 //--------------------------------------------------------------------------------------------------
 // Main.cpp
 //
-// This contains all the portaudio setup stuff.  Nothing of major importance really.
-// Music.cpp is where all the interesting things are.
+// This contains all the portaudio setup stuff.  Nothing of major importance or interest.
 //
 //--------------------------------------------------------------------------------------------------
 
 #include <stdio.h>
 #include "PortAudio/include/portaudio.h"
-#include "Music.h"
-#include <Windows.h>
+#include "DemoMgr.h"
+#include <algorithm>
+#include <Windows.h> // for getting key states
 
 // audio data needed by the audio sample generator
 float               g_sampleRate = 0.0f;
 static const size_t g_numChannels = 2;
+
+//--------------------------------------------------------------------------------------------------
+struct SKeyState {
+    SHORT m_keys[256];
+};
 
 //--------------------------------------------------------------------------------------------------
 static int GenerateAudioSamples (
@@ -24,8 +29,25 @@ static int GenerateAudioSamples (
     PaStreamCallbackFlags statusFlags,
     void *userData
 ) {
-    GenerateAudioSamplesCallback((float*)outputBuffer, framesPerBuffer, g_numChannels, g_sampleRate);
+    CDemoMgr::GenerateAudioSamples((float*)outputBuffer, framesPerBuffer, g_numChannels, g_sampleRate);
     return paContinue;
+}
+
+//--------------------------------------------------------------------------------------------------
+void GatherKeyStates (SKeyState& state) {
+    //GetKeyboardState(state.m_keys);
+    for (size_t i = 0; i < 256; ++i) {
+        state.m_keys[i] = GetAsyncKeyState(i);
+    }
+}
+
+//--------------------------------------------------------------------------------------------------
+void GenerateKeyEvents (SKeyState& oldState, SKeyState& newState) {
+    for (size_t i = 0; i < 256; ++i) {
+        if ((oldState.m_keys[i] != 0) != (newState.m_keys[i] != 0)) {
+            CDemoMgr::OnKey(char(i), newState.m_keys[i] != 0);
+        }
+    }
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -108,18 +130,19 @@ int main (int argc, char **argv)
         return err;
     }
 
-    BYTE keyState1[256];
-    BYTE keyState2[256];
-
-    BYTE* oldKeyState = keyState1;
-    BYTE* newKeyState = keyState2;
-
-    GetKeyboardState(oldKeyState);
-
-
-
-    // main loop for music demos
-    MusicDemosMain();
+    // send key events to the demo manager
+    CDemoMgr::Init();
+    SKeyState keyState1;
+    SKeyState keyState2;
+    SKeyState* oldKeyState = &keyState1;
+    SKeyState* newKeyState = &keyState2;
+    GatherKeyStates(*oldKeyState);
+    while (!CDemoMgr::WantsExit()) {
+        GatherKeyStates(*newKeyState);
+        GenerateKeyEvents(*oldKeyState, *newKeyState);
+        std::swap(oldKeyState, newKeyState);
+        Sleep(0);
+    }
 
     // stop the stream
     err = Pa_StopStream(stream);
