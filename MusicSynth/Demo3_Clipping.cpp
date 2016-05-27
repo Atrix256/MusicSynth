@@ -1,5 +1,5 @@
 //--------------------------------------------------------------------------------------------------
-// Demo1_Sine.cpp
+// Demo3_Clipping.cpp
 //
 // Logic for the demo of the same name
 //
@@ -7,9 +7,10 @@
 
 #include "DemoMgr.h"
 
-namespace Demo1_Sine {
+namespace Demo3_Clipping {
 
     float g_frequency = 0.0f;
+    float g_volumeAmplifier = 1.0f;
 
     //--------------------------------------------------------------------------------------------------
     void GenerateAudioSamples (float *outputBuffer, size_t framesPerBuffer, size_t numChannels, float sampleRate) {
@@ -21,7 +22,7 @@ namespace Demo1_Sine {
         for (size_t sample = 0; sample < framesPerBuffer; ++sample, outputBuffer += numChannels) {
 
             // get the sine wave amplitude for this phase (angle)
-            float value = SineWave(phase);
+            float value = SineWave(phase) * g_volumeAmplifier;
 
             // advance the phase, making sure to stay within 0 and 1
             phase += phaseAdvance;
@@ -42,17 +43,16 @@ namespace Demo1_Sine {
 
         switch (key) {
             // number row
-            case '1': g_frequency = NoteToFrequency(4, 0); break;
-            case '2': g_frequency = NoteToFrequency(4, 1); break;
-            case '3': g_frequency = NoteToFrequency(4, 2); break;
-            case '4': g_frequency = NoteToFrequency(4, 3); break;
-            case '5': g_frequency = NoteToFrequency(4, 4); break;
-            case '6': g_frequency = NoteToFrequency(4, 5); break;
-            case '7': g_frequency = NoteToFrequency(4, 6); break;
-            case '8': g_frequency = NoteToFrequency(4, 7); break;
-            case '9': g_frequency = NoteToFrequency(4, 8); break;
-            case '0': g_frequency = NoteToFrequency(4, 9); break;
-            case -67: g_frequency = NoteToFrequency(4, 10); break;
+            case '1': g_volumeAmplifier = 1.0f; break;
+            case '2': g_volumeAmplifier = 2.0f; break;
+            case '3': g_volumeAmplifier = 3.0f; break;
+            case '4': g_volumeAmplifier = 4.0f; break;
+            case '5': g_volumeAmplifier = 5.0f; break;
+            case '6': g_volumeAmplifier = 6.0f; break;
+            case '7': g_volumeAmplifier = 7.0f; break;
+            case '8': g_volumeAmplifier = 8.0f; break;
+            case '9': g_volumeAmplifier = 9.0f; break;
+            case '0': g_volumeAmplifier = 10.0f; break;
 
             // QWERTY row
             case 'Q': g_frequency = NoteToFrequency(3, 0); break;
@@ -106,12 +106,13 @@ namespace Demo1_Sine {
             }
         }
 
-        printf("Frequency = %0.2fhz\r\n", g_frequency);
+        printf("Frequency = %0.2fhz, Volume = %i%%\r\n", g_frequency, int(g_volumeAmplifier*100.0f));
     }
 
     //--------------------------------------------------------------------------------------------------
     void OnEnterDemo () {
         g_frequency = 0.0f;
-        printf("\r\n\r\nEntering Demo: %s\r\nPress the keys to play different sine tones. Space to silence.\r\nMelody1 = ZMAM x4 then Z,A, x4. left shift / control is super low frequency.\r\n\r\n", s_demoName);
+        g_volumeAmplifier = 1.0f;
+        printf("\r\n\r\nEntering Demo: %s\r\nNumber keys to adjust volume and adjust clipping.\n\nLetter key to play different sine tones. Space to silence.\r\nMelody1 = ZMAM. left shift / control is super low frequency.\r\n\r\n", s_demoName);
     }
 }

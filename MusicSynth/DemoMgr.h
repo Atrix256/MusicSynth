@@ -90,6 +90,7 @@ public:
                     s_volumeMultiplier += 0.1f;
                     if (s_volumeMultiplier > 1.0f)
                         s_volumeMultiplier = 1.0f;
+                    printf("Master Volume = %i%%\r\n", size_t(s_volumeMultiplier*100.0f));
                 }
                 return;
             }
@@ -99,6 +100,7 @@ public:
                     s_volumeMultiplier -= 0.1f;
                     if (s_volumeMultiplier < 0.0f)
                         s_volumeMultiplier = 0.0f;
+                    printf("Master Volume = %i%%\r\n", size_t(s_volumeMultiplier*100.0f));
                 }
                 return;
             }

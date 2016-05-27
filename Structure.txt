@@ -1,5 +1,7 @@
 Presentation is on 7/1/16
 
+* invite nathan and sound guys too
+
 ! code that can be used for offline or real time both?
  * maybe modes should be:
   * real time play
@@ -9,6 +11,9 @@ Presentation is on 7/1/16
  * maybe just a quick example of how to write a wave file?
   * or point to blog that explains how to do it
 
+! note that much like audio samples, it's the difference in notes that's important.
+ ? could show an example.  same sound, shifted a few notes over.
+
 ! make the music that brings it all together?
  * maybe make the music as we go? i dunno...
 
@@ -16,6 +21,8 @@ Presentation is on 7/1/16
  * keyboardsareevil.com
 
 ! make the demo 0_BGMusic
+ * make it from things you showcase in the demos, so it comes together by the end.
+ * demo the bg music again at the end to show how it all came together.
 
 ! make sure video recording and room will pick up audio ok.
  * talk to paul haban.
@@ -61,16 +68,25 @@ Presentation Outline:
   * show clipped sine tones at different volumes
   * sometimes desired though.  Electric guitar distortion takes it's roots from this for instance.
   * demo: play some clipped notes.  adjust volume to make more or less clipping?
+  * DEMO = 3_Clipping
+  ! Note: sounds "8 bit" cause the taller a sine wave becomes, the more "square wave" it becomes. old systems did square waves cause they are fast to compute!
 
 --6--
  * Mixing: add values together to mix them together and make them both be able to be heard!
   * don't thinks clip? in practice it takes quite a bit to make that happen! manual process to correct levels though. although you can do "automatic volume adjustments" both in real time and "offline" with limiters and compressors
+  * don't play at full volume though?
   * demo: polyphonic tones with a decently long envelope. maybe some w/ extra long envelope and cause clipping? button to silence it :P
+  * Note: polyphonic
+  * Note: turn down volume a bit to keep from clipping. turn volume up to max, show how you can cause clipping.
+  * Note: can also kill all but last 3 or 4 notes played.
+  * NOTE: this clipping is done 100% in my software.  I'm not maxing out any speakers or anything. no damage
+  * DEMO = 4_Mixing
 
 --7--
  * Envelopes
   * show a few examples
   * demo: demo a few examples
+  * DEMO = 5_Envelopes
 
 --8--
  * Common wave forms

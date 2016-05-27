@@ -12,7 +12,6 @@ namespace Demo2_Popping {
     enum EMode {
         e_silence,
         e_notesPop,
-        e_notesSlidePop,
         e_notesNoPop,
         e_notesSlideNoPop,
     };
@@ -74,25 +73,14 @@ namespace Demo2_Popping {
                     value = std::sinf(timeInSeconds*frequency*2.0f*c_pi);
                     break;
                 }
-                case e_notesSlidePop: {
-                    // slide between different notes depending on which quarter second we are in
-                    float frequency = 0.0f;
-                    switch (quarterSeconds) {
-                        case 0: frequency = Lerp(NoteToFrequency(3, 0), NoteToFrequency(3, 1), quarterSecondsPercent); break;
-                        case 1: frequency = Lerp(NoteToFrequency(3, 1), NoteToFrequency(3, 3), quarterSecondsPercent); break;
-                        case 2: frequency = Lerp(NoteToFrequency(3, 3), NoteToFrequency(3, 1), quarterSecondsPercent); break;
-                        case 3: frequency = Lerp(NoteToFrequency(3, 1), NoteToFrequency(3, 0), quarterSecondsPercent); break;
-                        case 4: frequency = Lerp(NoteToFrequency(3, 0), NoteToFrequency(3, 1), quarterSecondsPercent); break;
-                        case 5: frequency = Lerp(NoteToFrequency(3, 1), NoteToFrequency(3, 5), quarterSecondsPercent); break;
-                        case 6: frequency = Lerp(NoteToFrequency(3, 5), NoteToFrequency(3, 1), quarterSecondsPercent); break;
-                        case 7: frequency = Lerp(NoteToFrequency(3, 1), NoteToFrequency(3, 0), quarterSecondsPercent); break;
-                    }
-
-                    // calculate the sine value based entirely on time and frequency
-                    value = std::sinf(timeInSeconds*frequency*2.0f*c_pi);
-                    break;
-                }
                 case e_notesNoPop: {
+                    // calculate an envelope for the beginning and end to avoid pops there
+                    float envelope = 1.0f;
+                    if (timeInSeconds < 0.05f)
+                        envelope = Lerp(0.0, 1.0, timeInSeconds / 0.05f);
+                    else if (timeInSeconds > 1.95)
+                        envelope = Lerp(1.0, 0.0, std::fmin((timeInSeconds - 1.95f) / 0.05f, 1.0f));
+
                     // play a different note depending on which quarter second we are in
                     float frequency = 0.0f;
                     switch (quarterSeconds) {
@@ -112,12 +100,22 @@ namespace Demo2_Popping {
                     // calculate the sine value based entirely on phase
                     value = std::sinf(phase * 2.0f * c_pi);
 
+                    // multiply in the envelope to avoid popping at the beginning and end
+                    value *= envelope;
+
                     // advance the phase, making sure to stay within 0 and 1
                     phase += phaseAdvance;
                     phase = std::fmod(phase, 1.0f);
                     break;
                 }
                 case e_notesSlideNoPop: {
+                    // calculate an envelope for the beginning and end to avoid pops there
+                    float envelope = 1.0f;
+                    if (timeInSeconds < 0.05f)
+                        envelope = Lerp(0.0, 1.0, timeInSeconds / 0.05f);
+                    else if (timeInSeconds > 1.95)
+                        envelope = Lerp(1.0, 0.0, std::fmin((timeInSeconds - 1.95f) / 0.05f, 1.0f));
+
                     // slide between different notes depending on which quarter second we are in
                     float frequency = 0.0f;
                     switch (quarterSeconds) {
@@ -136,6 +134,9 @@ namespace Demo2_Popping {
 
                     // calculate the sine value based entirely on phase
                     value = std::sinf(phase * 2.0f * c_pi);
+
+                    // multiply in the envelope to avoid popping at the beginning and end
+                    value *= envelope;
 
                     // advance the phase, making sure to stay within 0 and 1
                     phase += phaseAdvance;
@@ -160,23 +161,14 @@ namespace Demo2_Popping {
         // switch mode based on key press
         switch (key) {
             case '1': g_mode = e_notesPop; break;
-            case '2': g_mode = e_notesSlidePop; break;
-            case '3': g_mode = e_notesNoPop; break;
-            case '4': g_mode = e_notesSlideNoPop; break;
+            case '2': g_mode = e_notesNoPop; break;
+            case '3': g_mode = e_notesSlideNoPop; break;
         }
     }
 
     //--------------------------------------------------------------------------------------------------
     void OnEnterDemo () {
         g_mode = e_silence;
-        printf("\r\n\r\nEntering Demo: %s\r\n1 = notes with pop.\r\n2 = note slide with pop.\r\n3 = notes without pop.\r\n4 = note slide without pop.\r\n\r\n", s_demoName);
+        printf("\r\n\r\nEntering Demo: %s\r\n1 = notes with pop.\r\n2 = notes without pop.\r\n3 = note slide without pop.\r\n\r\n", s_demoName);
     }
 }
-
-/*
-
-TODO:
-* note slide pop sounds wrong, can you explain why?  maybe record a wav and look at it to see if there's anything obviously wrong
- * i don't think the fact that we are working based on time is enough to explain it.
-
-*/
