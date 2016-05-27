@@ -2,6 +2,8 @@ Presentation is on 7/1/16
 
 * invite nathan and sound guys too
 
+? lament of tim curry may make good intro music? play it looping
+
 ! code that can be used for offline or real time both?
  * maybe modes should be:
   * real time play
@@ -94,6 +96,7 @@ Presentation Outline:
  * Common wave forms
   * show square, saw, triangle and sine
   * demo: each wave form.  point out how similar sine and triangle are.  triangle was used because sine was too costly to compute.
+ * DEMO = 6_WaveForms
 
 --9--
  * Aliasing
@@ -101,6 +104,7 @@ Presentation Outline:
   * bandlimited wave forms (w/ equations?)
   * mention additive synthesis being a way of building up a sound from nothing by adding things together.
   * demo: bandlimited vs not wave forms.
+ * DEMO = 7_BLWaveForms
 
 --10--
  * Tremolo & Vibrato
@@ -130,6 +134,7 @@ Presentation Outline:
  * Reverb
   * explain multitap.  mention convolution reverb.  Reference blog post on how to do it.
   * demo: play some sweet sweet notes with multitap reverb
+  * could play multitap next to convolution reverb to show difference in quality
 
 --15--
  * Flange
@@ -191,6 +196,7 @@ Presentation Outline:
  * stereo sounds or higher
  * using audio synth for smooth terrain generation.
  * wave file = header, and then just audio samples.
+ * yes, can do midi devices. portmidi is a decent library for that. can get velocity so harder presses = louder notes, etc!
 
 ==============================================
 Topics Brainstorm:

@@ -11,27 +11,84 @@
 static const float c_pi = 3.14159265359f;
 
 //--------------------------------------------------------------------------------------------------
-inline float SawWave(float phase) {
+// Oscillators
+//   Pass a phase from 0 to 1.  Not a true angle, it's a percentage.
+//--------------------------------------------------------------------------------------------------
+inline float SawWave (float phase) {
     return phase * 2.0f - 1.0f;
 }
 
 //--------------------------------------------------------------------------------------------------
-inline float SineWave(float phase) {
+inline float SineWave (float phase) {
     return std::sinf(phase * 2.0f * c_pi);
 }
 
 //--------------------------------------------------------------------------------------------------
-inline float SquareWave(float phase) {
+inline float SquareWave (float phase) {
     return phase >= 0.5f ? 1.0f : -1.0f;
 }
 
 //--------------------------------------------------------------------------------------------------
-inline float TriangleWave(float phase) {
+inline float TriangleWave (float phase) {
     return std::abs(phase - 0.5f) * 4.0f - 1.0f;
 }
 
 //--------------------------------------------------------------------------------------------------
-inline float NoteToFrequency(float fOctave, float fNote)
+inline float SawWaveBandLimited (float phase, int nNumHarmonics) {
+    // make phase be a true angle
+    phase *= 2.0f * c_pi;
+
+    //calculate the saw wave sample
+    float fRet = 0.0f;
+    for (int nHarmonicIndex = 1; nHarmonicIndex <= nNumHarmonics; ++nHarmonicIndex)
+    {
+        fRet += sin(phase*(float)nHarmonicIndex) / (float)nHarmonicIndex;
+    }
+
+    // return the value, with adjusted volume
+    return fRet * 2.0f / c_pi;
+}
+
+//--------------------------------------------------------------------------------------------------
+inline float SquareWaveBandLimited (float phase, int nNumHarmonics) {
+    // make phase be a true angle
+    phase *= 2.0f * c_pi;
+
+    //calculate the square wave sample
+    float fRet = 0.0f;
+    for (int nHarmonicIndex = 1; nHarmonicIndex <= nNumHarmonics; ++nHarmonicIndex)
+    {
+        fRet += sin(phase*(float)(nHarmonicIndex * 2 - 1)) / (float)(nHarmonicIndex * 2 - 1);
+    }
+
+    // return the value, with adjusted volume
+    return fRet * 4.0f / c_pi;
+}
+
+//--------------------------------------------------------------------------------------------------
+inline float TriangleWaveBandLimited (float phase, int nNumHarmonics) {
+    // make phase be a true angle
+    phase *= 2.0f * c_pi;
+
+    //calculate the triangle wave sample
+    bool subtract = true;
+    float fRet = 0.0f;
+    for (int nHarmonicIndex = 1; nHarmonicIndex <= nNumHarmonics; ++nHarmonicIndex)
+    {
+        if (subtract)
+            fRet -= sin(phase*(float)(nHarmonicIndex * 2 - 1)) / ((float)(nHarmonicIndex * 2 - 1) * (float)(nHarmonicIndex * 2 - 1));
+        else
+            fRet += sin(phase*(float)(nHarmonicIndex * 2 - 1)) / ((float)(nHarmonicIndex * 2 - 1) * (float)(nHarmonicIndex * 2 - 1));
+
+        subtract = !subtract;
+    }
+
+    // return the value, with adjusted volume
+    return fRet * 8.0f / (c_pi * c_pi);
+}
+
+//--------------------------------------------------------------------------------------------------
+inline float NoteToFrequency (float fOctave, float fNote)
 /*
 Calculate the frequency of any note!
 frequency = 440×(2^(n/12))
