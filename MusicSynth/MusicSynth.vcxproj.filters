@@ -47,5 +47,8 @@
     <ClInclude Include="AudioUtils.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="SWaveFileHeader.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

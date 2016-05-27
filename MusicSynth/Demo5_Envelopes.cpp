@@ -361,12 +361,6 @@ namespace Demo5_Envelopes {
 
 TODO:
 
-* make it so you can press R to toggle recording audio.  Use it to see why the clipping demo thing has popping in it when it's barely clipping?
-
-* finish recording.
-* use a lockless queue (or a queue) instead of a vector to store audio buffers?
-
-* info on writing wav files to disk:
-http://blog.demofox.org/2012/05/14/diy-synthesizer-chapter-1-sound-output/
+* Use Recording feature to see why the clipping demo thing has popping in it when it's barely clipping?
 
 */

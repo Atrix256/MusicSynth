@@ -15,7 +15,11 @@ FILE* CDemoMgr::s_recordingWavFile = nullptr;
 
 // for recording audio
 std::mutex CDemoMgr::s_recordingBuffersMutex;
-std::queue<CDemoMgr::SRecordingBuffer*> CDemoMgr::s_recordingBuffers;
+std::queue<std::unique_ptr<CDemoMgr::SRecordingBuffer>> CDemoMgr::s_recordingBuffers;
+SWaveFileHeader CDemoMgr::s_waveFileHeader;
+size_t CDemoMgr::s_recordedNumSamples;
+size_t CDemoMgr::s_recordingNumChannels;
+size_t CDemoMgr::s_recordingSampleRate;
 
 //--------------------------------------------------------------------------------------------------
 static bool FileExists (const char* fileName) {
@@ -47,20 +51,38 @@ void CDemoMgr::StartRecording() {
         return;
     }
 
-    printf("Started recording audio to %s\r\n", fileName);
+    // write a dummy header for now.  It'll be re-written when we have all our data at the end of
+    // the recording process.
+    fwrite(&s_waveFileHeader, sizeof(s_waveFileHeader), 1, s_recordingWavFile);
 
-    // TODO: write dummy header. 
+    // remember that we've recorded 0 samples so far
+    s_recordedNumSamples = 0;
+
+    // tell the user we've started recording
+    printf("Started recording audio to %s\r\n", fileName);
 }
 
 //--------------------------------------------------------------------------------------------------
 void CDemoMgr::StopRecording() {
     FlushRecordingBuffers();
 
-    // TODO: seek to beginning, write correct header.
+    // seek to the beginning of the file
+    fseek(s_recordingWavFile, 0, SEEK_SET);
 
+    // Fill out the header with the correct information
+    s_waveFileHeader.Fill(s_recordedNumSamples, s_recordingNumChannels, s_recordingSampleRate);
+
+    // write the header again, now with correct info
+    fwrite(&s_waveFileHeader, sizeof(s_waveFileHeader), 1, s_recordingWavFile);
+
+    // close the file
     fclose(s_recordingWavFile);
     s_recordingWavFile = nullptr;
+
+    // clear any data that may be left in the recording buffers
     ClearRecordingBuffers();
+
+    // tell the user we've stopped recording
     printf("Recording stopped.\r\n");
 }
 
@@ -72,14 +94,29 @@ void CDemoMgr::Update() {
 
 //--------------------------------------------------------------------------------------------------
 void CDemoMgr::FlushRecordingBuffers() {
-    // TODO: grab a mutex, write all pending buffers to disk, remove them from the vector.
+    std::lock_guard<std::mutex> guard(s_recordingBuffersMutex);
+    while (!s_recordingBuffers.empty()) {
+        SRecordingBuffer& buffer = *s_recordingBuffers.front();
+
+        // cache off recording params
+        s_recordingNumChannels = buffer.m_numChannels;
+        s_recordingSampleRate = size_t(buffer.m_sampleRate);
+
+        // write the samples to disk
+        fwrite(buffer.m_buffer, sizeof(int16_t), buffer.m_framesPerBuffer * buffer.m_numChannels, s_recordingWavFile);
+
+        // keep track of how many samples we've recorded
+        s_recordedNumSamples += buffer.m_framesPerBuffer * buffer.m_numChannels;
+
+        // pop the buffer now that we've consumed it
+        s_recordingBuffers.pop();
+    }
 }
 
 //--------------------------------------------------------------------------------------------------
 void CDemoMgr::ClearRecordingBuffers() {
     std::lock_guard<std::mutex> guard(s_recordingBuffersMutex);
     while (!s_recordingBuffers.empty()) {
-        delete s_recordingBuffers.front();
         s_recordingBuffers.pop();
     }
 }
@@ -87,15 +124,18 @@ void CDemoMgr::ClearRecordingBuffers() {
 //--------------------------------------------------------------------------------------------------
 void CDemoMgr::AddRecordingBuffer (float *buffer, size_t framesPerBuffer, size_t numChannels, float sampleRate) {
 
-    // copy the buffer data and params
-    SRecordingBuffer *newBuffer = new SRecordingBuffer;
-    newBuffer->m_buffer = new float[framesPerBuffer*numChannels];
-    memcpy(newBuffer->m_buffer, buffer, sizeof(float) * framesPerBuffer * numChannels);
+    // make a new SRecordingBuffer and store off the params
+    std::unique_ptr<SRecordingBuffer> newBuffer = std::make_unique<SRecordingBuffer>();
     newBuffer->m_framesPerBuffer = framesPerBuffer;
     newBuffer->m_numChannels = numChannels;
     newBuffer->m_sampleRate = sampleRate;
 
+    // convert samples from floats to int16
+    newBuffer->m_buffer = new int16_t[framesPerBuffer*numChannels];
+    for (size_t i = 0, c = framesPerBuffer*numChannels; i < c; ++i)
+        newBuffer->m_buffer[i] = ConvertFloatToAudioSample(buffer[i]);
+
     // get a lock on the mutex and add this buffer
     std::lock_guard<std::mutex> guard(s_recordingBuffersMutex);
-    s_recordingBuffers.push(newBuffer);
+    s_recordingBuffers.push(std::move(newBuffer));
 }

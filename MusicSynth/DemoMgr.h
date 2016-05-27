@@ -9,9 +9,11 @@
 
 #include <stdio.h>
 #include "AudioUtils.h"
+#include "SWaveFileHeader.h"
 #include <vector>
 #include <mutex>
 #include <queue>
+#include <memory>
 
 //--------------------------------------------------------------------------------------------------
 enum EDemo {
@@ -64,6 +66,9 @@ public:
             #include "DemoList.h"
         }
 
+        // store off the original value of outputBuffer so we can use it for recording
+        float *bufferStart = outputBuffer;
+
         // apply volume adjustment smoothly over the buffer window via a lerp of amplitude.
         // also apply clipping.
         bool clip = s_clippingOn;
@@ -92,7 +97,7 @@ public:
 
         // if we are recording, add this frame to our frame queue
         if (IsRecording())
-            AddRecordingBuffer(outputBuffer, framesPerBuffer, numChannels, sampleRate);
+            AddRecordingBuffer(bufferStart, framesPerBuffer, numChannels, sampleRate);
     }
 
     static void OnKey(char key, bool pressed) {
@@ -199,10 +204,10 @@ private:
             m_sampleRate = 0.0f;
         }
 
-        float*  m_buffer;
-        size_t  m_framesPerBuffer;
-        size_t  m_numChannels;
-        float   m_sampleRate;
+        int16_t*    m_buffer;
+        size_t      m_framesPerBuffer;
+        size_t      m_numChannels;
+        float       m_sampleRate;
     };
 
     static EDemo    s_currentDemo;
@@ -213,6 +218,10 @@ private:
     static FILE*    s_recordingWavFile;
 
     // for recording audio
-    static std::mutex                       s_recordingBuffersMutex;
-    static std::queue<SRecordingBuffer*>    s_recordingBuffers;
+    static std::mutex                                       s_recordingBuffersMutex;
+    static std::queue<std::unique_ptr<SRecordingBuffer>>    s_recordingBuffers;
+    static SWaveFileHeader                                  s_waveFileHeader;
+    static size_t                                           s_recordedNumSamples;
+    static size_t                                           s_recordingNumChannels;
+    static size_t                                           s_recordingSampleRate;
 };
