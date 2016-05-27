@@ -213,6 +213,6 @@ private:
     static FILE*    s_recordingWavFile;
 
     // for recording audio
-    static std::mutex                   s_recordingBuffersMutex;
-    static std::queue<SRecordingBuffer> s_recordingBuffers;
+    static std::mutex                       s_recordingBuffersMutex;
+    static std::queue<SRecordingBuffer*>    s_recordingBuffers;
 };

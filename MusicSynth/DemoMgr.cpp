@@ -15,7 +15,7 @@ FILE* CDemoMgr::s_recordingWavFile = nullptr;
 
 // for recording audio
 std::mutex CDemoMgr::s_recordingBuffersMutex;
-std::queue<CDemoMgr::SRecordingBuffer> CDemoMgr::s_recordingBuffers;
+std::queue<CDemoMgr::SRecordingBuffer*> CDemoMgr::s_recordingBuffers;
 
 //--------------------------------------------------------------------------------------------------
 static bool FileExists (const char* fileName) {
@@ -78,20 +78,22 @@ void CDemoMgr::FlushRecordingBuffers() {
 //--------------------------------------------------------------------------------------------------
 void CDemoMgr::ClearRecordingBuffers() {
     std::lock_guard<std::mutex> guard(s_recordingBuffersMutex);
-    while (!s_recordingBuffers.empty())
+    while (!s_recordingBuffers.empty()) {
+        delete s_recordingBuffers.front();
         s_recordingBuffers.pop();
+    }
 }
 
 //--------------------------------------------------------------------------------------------------
 void CDemoMgr::AddRecordingBuffer (float *buffer, size_t framesPerBuffer, size_t numChannels, float sampleRate) {
 
     // copy the buffer data and params
-    SRecordingBuffer newBuffer;
-    newBuffer.m_buffer = new float[framesPerBuffer*numChannels];
-    memcpy(newBuffer.m_buffer, buffer, sizeof(float) * framesPerBuffer * numChannels);
-    newBuffer.m_framesPerBuffer = framesPerBuffer;
-    newBuffer.m_numChannels = numChannels;
-    newBuffer.m_sampleRate = sampleRate;
+    SRecordingBuffer *newBuffer = new SRecordingBuffer;
+    newBuffer->m_buffer = new float[framesPerBuffer*numChannels];
+    memcpy(newBuffer->m_buffer, buffer, sizeof(float) * framesPerBuffer * numChannels);
+    newBuffer->m_framesPerBuffer = framesPerBuffer;
+    newBuffer->m_numChannels = numChannels;
+    newBuffer->m_sampleRate = sampleRate;
 
     // get a lock on the mutex and add this buffer
     std::lock_guard<std::mutex> guard(s_recordingBuffersMutex);
