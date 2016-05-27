@@ -33,6 +33,7 @@ Presentation Outline:
 
 --1--
  * title / background music? explaining that bg music was made with the things being talked about.
+ * I wanted to make this presentation since paul started doing code & tells, finally got around to it.
  * DEMO = 0_BGMusic
 
 --2--
@@ -57,6 +58,7 @@ Presentation Outline:
 --4--
  * Note sliding and popping: free spinning oscilators vs not.  audio needs to be smooth!
   * show playing notes one after the other, having popping
+  * Note: can also come from changing volume quickly, so need to apply smooth volume over time.
   * demo: let people hear it
   * show the fix: free spinning oscilator
   * show note sliding
@@ -187,6 +189,8 @@ Presentation Outline:
  * decibels vs amplitude
  * converting timing (like in 4/4, im on note 3, bar 5) to be a sample number
  * stereo sounds or higher
+ * using audio synth for smooth terrain generation.
+ * wave file = header, and then just audio samples.
 
 ==============================================
 Topics Brainstorm:

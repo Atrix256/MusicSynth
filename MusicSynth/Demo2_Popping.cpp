@@ -169,6 +169,6 @@ namespace Demo2_Popping {
     //--------------------------------------------------------------------------------------------------
     void OnEnterDemo () {
         g_mode = e_silence;
-        printf("\r\n\r\nEntering Demo: %s\r\n1 = notes with pop.\r\n2 = notes without pop.\r\n3 = note slide without pop.\r\n\r\n", s_demoName);
+        printf("n1 = notes with pop.\r\n2 = notes without pop.\r\n3 = note slide without pop.\r\n");
     }
 }

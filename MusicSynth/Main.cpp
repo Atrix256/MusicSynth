@@ -130,7 +130,8 @@ int main (int argc, char **argv)
         return err;
     }
 
-    // send key events to the demo manager
+    // loop of sending key events to demo manager, until it wants to exit.
+    // also give the demo manager an update
     CDemoMgr::Init();
     SKeyState keyState1;
     SKeyState keyState2;
@@ -141,6 +142,7 @@ int main (int argc, char **argv)
         GatherKeyStates(*newKeyState);
         GenerateKeyEvents(*oldKeyState, *newKeyState);
         std::swap(oldKeyState, newKeyState);
+        CDemoMgr::Update();
         Sleep(0);
     }
 

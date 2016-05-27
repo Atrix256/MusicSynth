@@ -6,8 +6,6 @@
 //--------------------------------------------------------------------------------------------------
 
 #include "DemoMgr.h"
-#include <vector>
-#include <mutex>
 #include <algorithm>
 
 namespace Demo5_Envelopes {
@@ -24,12 +22,16 @@ namespace Demo5_Envelopes {
             : m_frequency(frequency)
             , m_envelope(envelope)
             , m_age(0)
-            , m_dead(false) {}
+            , m_dead(false)
+            , m_wantsKeyRelease(false)
+            , m_releaseAge(0) {}
 
         float       m_frequency;
         EEnvelope   m_envelope;
         size_t      m_age;
         bool        m_dead;
+        bool        m_wantsKeyRelease;
+        size_t      m_releaseAge;
     };
 
     std::vector<SNote>  g_notes;
@@ -105,6 +107,79 @@ namespace Demo5_Envelopes {
     }
 
     //--------------------------------------------------------------------------------------------------
+    inline float GenerateEnvelope_Flute (SNote& note, float ageInSeconds, float sampleRate) {
+        
+        /*
+            We do an ADSR envelope for flute:  Attack, Decay, Sustain, Release.
+
+            When the note is pressed, it always does an attack and decay envelope.  Attack takes it from
+            0 volume to full volume, then Decay takes it down to the decay volume level.
+
+            Then, as long as the key is held down, it will play at the decay volume.
+
+            When the key is released, it will then do the decay envelope back to silence and then kill
+            the note.
+
+              A
+              /\ D     S
+             /  --------\
+            /            \
+           0              R (0)
+
+        */
+        
+
+        // length of envelope sections
+        static const float c_attackTime = 0.1f;
+        static const float c_decayTime = 0.05f;
+        static const float c_releaseTime = 0.1f;
+        static const float c_noteInitialTime = c_attackTime + c_decayTime;
+
+        // envelope volumes
+        static const float c_attackVolume = 1.0f;
+        static const float c_decayVolume = 0.4f;
+
+        float envelope = 0.0f;
+
+        // if the key isn't yet released
+        if (note.m_releaseAge == 0) {
+            // release the key if it wants to be released and has done the attack and decay
+            if (note.m_wantsKeyRelease && ageInSeconds > c_noteInitialTime) {
+                note.m_releaseAge = note.m_age;
+            }
+            // else do the attack and decay envelope
+            else {
+                envelope = Envelope3Pt(
+                    ageInSeconds,
+                    0.0f, 0.0f,
+                    c_attackTime, c_attackVolume,
+                    c_noteInitialTime, c_decayVolume
+                );
+            }
+        }
+
+        // if the key has been released, apply the release 
+        if (note.m_releaseAge != 0) {
+
+            float releaseAgeInSeconds = float(note.m_releaseAge) / sampleRate;
+
+            float secondsInRelease = ageInSeconds - releaseAgeInSeconds;
+
+            envelope = Envelope2Pt(
+                secondsInRelease,
+                0.0f, c_decayVolume,
+                c_releaseTime, 0.0f
+            );
+
+            // kill the note when the release is done
+            if (secondsInRelease > c_releaseTime)
+                note.m_dead = true;
+        }
+
+        return envelope;
+    }
+
+    //--------------------------------------------------------------------------------------------------
     inline float GenerateNoteSample (SNote& note, float sampleRate) {
 
         float envelope = 0.0f;
@@ -118,6 +193,7 @@ namespace Demo5_Envelopes {
             case e_envelopeMinimal:     envelope = GenerateEnvelope_Minimal(note, ageInSeconds); break;
             case e_envelopeBell:        envelope = GenerateEnvelope_Bell(note, ageInSeconds); break;
             case e_envelopeReverseBell: envelope = GenerateEnvelope_ReverseBell(note, ageInSeconds); break;
+            case e_envelopeFlute:       envelope = GenerateEnvelope_Flute(note, ageInSeconds, sampleRate); break;
         }
 
         // generate the sine value for the current time.
@@ -164,11 +240,37 @@ namespace Demo5_Envelopes {
     }
 
     //--------------------------------------------------------------------------------------------------
+    void StopFluteNote (float frequency) {
+
+        // get a lock on our notes vector
+        std::lock_guard<std::mutex> guard(g_notesMutex);
+
+        // Any note that is a flute note of this frequency should note that it wants to enter released
+        // state.
+        std::for_each(
+            g_notes.begin(),
+            g_notes.end(),
+            [frequency] (SNote& note) {
+                if (note.m_envelope == e_envelopeFlute && note.m_frequency == frequency) {
+                    note.m_wantsKeyRelease = true;
+                }
+            }
+        );
+    }
+
+    //--------------------------------------------------------------------------------------------------
     void OnKey (char key, bool pressed) {
 
-        // only listen to key down events
-        if (!pressed)
-            return;
+        // pressing numbers switch envelopes
+        if (pressed) {
+            switch (key)
+            {
+                case '1': g_currentEnvelope = e_envelopeMinimal; return;
+                case '2': g_currentEnvelope = e_envelopeBell; return;
+                case '3': g_currentEnvelope = e_envelopeReverseBell; return;
+                case '4': g_currentEnvelope = e_envelopeFlute; return;
+            }
+        }
 
         // figure out what frequency to play
         float frequency = 0.0f;
@@ -229,6 +331,16 @@ namespace Demo5_Envelopes {
             }
         }
 
+
+        // if releasing a note, we want to do nothing in most modes.
+        // in flute mode, we need to find and kill the flute note of the same frequency
+        if (!pressed) {
+            if (g_currentEnvelope == e_envelopeFlute) {
+                StopFluteNote(frequency);
+            }
+            return;
+        }
+
         // get a lock on our notes vector and add the new note
         std::lock_guard<std::mutex> guard(g_notesMutex);
         g_notes.push_back(SNote(frequency, g_currentEnvelope));
@@ -237,11 +349,11 @@ namespace Demo5_Envelopes {
     //--------------------------------------------------------------------------------------------------
     void OnEnterDemo () {
         g_currentEnvelope = e_envelopeMinimal;
-        printf("\r\n\r\nEntering Demo: %s\r\nLetter keys to play notes.\r\nleft shift / control is super low frequency.\r\n", s_demoName);
+        printf("Letter keys to play notes.\r\nleft shift / control is super low frequency.\r\n");
         printf("1 = minimal\r\n");
         printf("2 = bell\r\n");
         printf("3 = reverse bell\r\n");
-        printf("4 = flute\r\n\r\n");
+        printf("4 = flute\r\n");
     }
 }
 
@@ -249,8 +361,12 @@ namespace Demo5_Envelopes {
 
 TODO:
 
-* for flute, can we make it so we sustain a note until it's released?
- * when in flute mode, in the key event function, we would look for notes with the same frequency and mark them as dead.
- * ASDR envelope for flute: http://www.explainthatstuff.com/synthesizers.html
+* make it so you can press R to toggle recording audio.  Use it to see why the clipping demo thing has popping in it when it's barely clipping?
+
+* finish recording.
+* use a lockless queue (or a queue) instead of a vector to store audio buffers?
+
+* info on writing wav files to disk:
+http://blog.demofox.org/2012/05/14/diy-synthesizer-chapter-1-sound-output/
 
 */

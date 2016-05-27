@@ -112,6 +112,6 @@ namespace Demo1_Sine {
     //--------------------------------------------------------------------------------------------------
     void OnEnterDemo () {
         g_frequency = 0.0f;
-        printf("\r\n\r\nEntering Demo: %s\r\nPress the keys to play different sine tones. Space to silence.\r\nMelody1 = ZMAM x4 then Z,A, x4. left shift / control is super low frequency.\r\n\r\n", s_demoName);
+        printf("Press the keys to play different sine tones. Space to silence.\r\nMelody1 = ZMAM x4 then Z,A, x4. left shift / control is super low frequency.\r\n");
     }
 }

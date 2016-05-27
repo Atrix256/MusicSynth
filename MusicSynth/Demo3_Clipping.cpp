@@ -113,6 +113,6 @@ namespace Demo3_Clipping {
     void OnEnterDemo () {
         g_frequency = 0.0f;
         g_volumeAmplifier = 1.0f;
-        printf("\r\n\r\nEntering Demo: %s\r\nNumber keys to adjust volume and adjust clipping.\n\nLetter key to play different sine tones. Space to silence.\r\nMelody1 = ZMAM. left shift / control is super low frequency.\r\n\r\n", s_demoName);
+        printf("Number keys to adjust volume and adjust clipping.\r\nLetter key to play different sine tones. Space to silence.\r\nMelody1 = ZMAM. left shift / control is super low frequency.\r\n");
     }
 }

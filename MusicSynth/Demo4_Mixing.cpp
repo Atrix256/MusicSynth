@@ -6,8 +6,6 @@
 //--------------------------------------------------------------------------------------------------
 
 #include "DemoMgr.h"
-#include <vector>
-#include <mutex>
 #include <algorithm>
 
 namespace Demo4_Mixing {
@@ -174,6 +172,6 @@ namespace Demo4_Mixing {
 
     //--------------------------------------------------------------------------------------------------
     void OnEnterDemo () {
-        printf("\r\n\r\nEntering Demo: %s\r\nPress the keys to play different sine tones polyphonically.\r\nleft shift / control is super low frequency.\r\n\r\n", s_demoName);
+        printf("Press the keys to play different sine tones polyphonically.\r\nleft shift / control is super low frequency.\r\n");
     }
 }

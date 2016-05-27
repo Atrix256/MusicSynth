@@ -64,6 +64,38 @@ inline float Lerp (float a, float b, float t) {
 }
 
 //--------------------------------------------------------------------------------------------------
+inline float Envelope2Pt (
+    float time,
+    float time0, float volume0,
+    float time1, float volume1
+) {
+    /*
+    This function does a "line" type envelope.
+
+      v1
+       *
+      / 
+     /  
+  v0*   
+    +--+
+    t0 t1
+
+    */
+
+    // if before envelope starts, return volume0
+    if (time < time0)
+        return volume0;
+    
+    // if after envelope ends, return volume1
+    if (time > time1)
+        return volume1;
+
+    // else between time0 and time1, lerp between volume0 and volume1
+    float percent = (time - time0) / (time1 - time0);
+    return Lerp(volume0, volume1, percent);
+}
+
+//--------------------------------------------------------------------------------------------------
 inline float Envelope3Pt (
     float time,
     float time0, float volume0,
