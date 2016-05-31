@@ -1,5 +1,5 @@
 //--------------------------------------------------------------------------------------------------
-// Demo7_BLWaveForms.cpp
+// Demo10_Delay.cpp
 //
 // Logic for the demo of the same name
 //
@@ -8,7 +8,7 @@
 #include "DemoMgr.h"
 #include <algorithm>
 
-namespace Demo7_BLWaveForms {
+namespace Demo10_Delay {
 
     enum EWaveForm {
         e_waveSine,
@@ -17,12 +17,29 @@ namespace Demo7_BLWaveForms {
         e_waveTriangle
     };
 
+    enum EDelay {
+        e_delayNone,
+        e_delay1,
+        e_delay2,
+        e_delay3,
+    };
+
     const char* WaveFormToString (EWaveForm waveForm) {
         switch (waveForm) {
             case e_waveSine: return "Sine";
             case e_waveSaw: return "Bandlimited Saw";
             case e_waveSquare: return "Bandlimited Square";
             case e_waveTriangle: return "Bandlimited Triangle";
+        }
+        return "???";
+    }
+
+    const char* DelayToString (EDelay delay) {
+        switch (delay) {
+            case e_delayNone: return "0.0";
+            case e_delay1: return "0.25";
+            case e_delay2: return "0.66";
+            case e_delay3: return "1.0";
         }
         return "???";
     }
@@ -47,6 +64,65 @@ namespace Demo7_BLWaveForms {
     std::vector<SNote>  g_notes;
     std::mutex          g_notesMutex;
     EWaveForm           g_currentWaveForm;
+    EDelay              g_currentDelay;
+
+    //--------------------------------------------------------------------------------------------------
+    // not a true delay effect, in that it returns the passed in sample mixed with what's in the delay
+    // buffer, but this ought to get the idea across.
+    struct SDelayEffect {
+
+        SDelayEffect ()
+            : m_delayBuffer(nullptr)
+            , m_delayBufferSize(0)
+            , m_feedback(1.0f)
+            , m_sampleIndex(0) {}
+
+        void SetEffectParams (float delayTime, float sampleRate, size_t numChannels, float feedback) {
+
+            size_t numSamples = size_t(delayTime * sampleRate) * numChannels;
+
+            delete[] m_delayBuffer;
+
+            if (numSamples == 0) {
+                m_delayBuffer = nullptr;
+                return;
+            }
+
+            m_delayBuffer = new float[numSamples];
+            memset(m_delayBuffer, 0, sizeof(float)*numSamples);
+
+            m_delayBufferSize = numSamples;
+            m_feedback = feedback;
+            m_sampleIndex = 0;
+        }
+
+        float AddSample (float sample) {
+            if (!m_delayBuffer)
+                return sample;
+
+            // apply feedback in the delay buffer, for whatever is currently in there.
+            // also mix in our new sample.
+            m_delayBuffer[m_sampleIndex] = m_delayBuffer[m_sampleIndex] * m_feedback + sample;
+
+            // cache off our value to return
+            float ret = m_delayBuffer[m_sampleIndex];
+
+            // move the index to the next location
+            m_sampleIndex = (m_sampleIndex + 1) % m_delayBufferSize;
+
+            // return the value with echo
+            return ret;
+        }
+
+        ~SDelayEffect() {
+            delete[] m_delayBuffer;
+        }
+
+        float*  m_delayBuffer;
+        size_t  m_delayBufferSize;
+        float   m_feedback;
+        size_t  m_sampleIndex;
+    };
 
     //--------------------------------------------------------------------------------------------------
     inline float GenerateEnvelope (SNote& note, float ageInSeconds, float sampleRate) {
@@ -97,7 +173,6 @@ namespace Demo7_BLWaveForms {
 
     //--------------------------------------------------------------------------------------------------
     inline float GenerateNoteSample (SNote& note, float sampleRate) {
-
         // calculate our age in seconds and advance our age in samples, by 1 sample
         float ageInSeconds = float(note.m_age) / sampleRate;
         ++note.m_age;
@@ -123,6 +198,32 @@ namespace Demo7_BLWaveForms {
     //--------------------------------------------------------------------------------------------------
     void GenerateAudioSamples (float *outputBuffer, size_t framesPerBuffer, size_t numChannels, float sampleRate) {
 
+        // re-create our delay buffer if the delay settings have changed
+        static SDelayEffect delayEffect;
+        static EDelay lastDelay = e_delayNone;
+        EDelay currentDelay = g_currentDelay;
+        if (currentDelay != lastDelay) {
+            lastDelay = currentDelay;
+            switch (currentDelay) {
+                case e_delayNone: {
+                    delayEffect.SetEffectParams(0.0f, sampleRate, numChannels, 0.0f);
+                    break;
+                }
+                case e_delay1: {
+                    delayEffect.SetEffectParams(0.25f, sampleRate, numChannels, 0.35f);
+                    break;
+                }
+                case e_delay2: {
+                    delayEffect.SetEffectParams(0.66f, sampleRate, numChannels, 0.4f);
+                    break;
+                }
+                case e_delay3: {
+                    delayEffect.SetEffectParams(1.0f, sampleRate, numChannels, 0.33f);
+                    break;
+                }
+            }
+        }
+
         // get a lock on our notes vector
         std::lock_guard<std::mutex> guard(g_notesMutex);
 
@@ -139,9 +240,9 @@ namespace Demo7_BLWaveForms {
                 }
             );
 
-            // copy the value to all audio channels
+            // put the value through the delay buffer, for all channels
             for (size_t channel = 0; channel < numChannels; ++channel)
-                outputBuffer[channel] = value;
+                outputBuffer[channel] = delayEffect.AddSample(value);
         }
 
         // remove notes that have died
@@ -176,8 +277,8 @@ namespace Demo7_BLWaveForms {
     }
 
     //--------------------------------------------------------------------------------------------------
-    void ReportParams() {
-        printf("Instrument: %s\r\n", WaveFormToString(g_currentWaveForm));
+    void ReportParams () {
+        printf("Instrument: %s  Delay: %s\r\n", WaveFormToString(g_currentWaveForm), DelayToString(g_currentDelay));
     }
 
     //--------------------------------------------------------------------------------------------------
@@ -191,6 +292,10 @@ namespace Demo7_BLWaveForms {
                 case '2': g_currentWaveForm = e_waveSaw; ReportParams(); return;
                 case '3': g_currentWaveForm = e_waveSquare; ReportParams(); return;
                 case '4': g_currentWaveForm = e_waveTriangle; ReportParams(); return;
+                case '5': g_currentDelay = e_delayNone; ReportParams(); return;
+                case '6': g_currentDelay = e_delay1; ReportParams(); return;
+                case '7': g_currentDelay = e_delay2; ReportParams(); return;
+                case '8': g_currentDelay = e_delay3; ReportParams(); return;
             }
         }
 
@@ -248,7 +353,6 @@ namespace Demo7_BLWaveForms {
             }
         }
 
-
         // if releasing a note, we need to find and kill the flute note of the same frequency
         if (!pressed) {
             StopNote(frequency);
@@ -263,10 +367,15 @@ namespace Demo7_BLWaveForms {
     //--------------------------------------------------------------------------------------------------
     void OnEnterDemo () {
         g_currentWaveForm = e_waveSine;
+        g_currentDelay = e_delayNone;
         printf("Letter keys to play notes.\r\nleft shift / control is super low frequency.\r\n");
         printf("1 = Sine\r\n");
         printf("2 = Band Limited Saw\r\n");
         printf("3 = Band Limited Square\r\n");
         printf("4 = Band Limited Triangle\r\n");
+        printf("5 = Delay 0.0\r\n");
+        printf("6 = Delay 0.25\r\n");
+        printf("7 = Delay 0.66\r\n");
+        printf("8 = Delay 1.0\r\n");
     }
 }

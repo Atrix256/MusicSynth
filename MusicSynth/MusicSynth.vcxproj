@@ -68,6 +68,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Demo10_Delay.cpp" />
     <ClCompile Include="Demo6_WaveForms.cpp" />
     <ClCompile Include="Demo2_Popping.cpp" />
     <ClCompile Include="Demo3_Clipping.cpp" />
@@ -78,6 +79,7 @@
     <ClCompile Include="Demo9_FMSynth.cpp" />
     <ClCompile Include="DemoMgr.cpp" />
     <ClCompile Include="Demo1_Sine.cpp" />
+    <ClCompile Include="Demo_11Reverb.cpp" />
     <ClCompile Include="Main.cpp" />
   </ItemGroup>
   <ItemGroup>

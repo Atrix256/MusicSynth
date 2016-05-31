@@ -17,6 +17,16 @@ namespace Demo6_WaveForms {
         e_waveTriangle
     };
 
+    const char* WaveFormToString (EWaveForm waveForm) {
+        switch (waveForm) {
+            case e_waveSine: return "Sine";
+            case e_waveSaw: return "Saw";
+            case e_waveSquare: return "Square";
+            case e_waveTriangle: return "Triangle";
+        }
+        return "???";
+    }
+
     struct SNote {
         SNote(float frequency, EWaveForm waveForm)
             : m_frequency(frequency)
@@ -165,16 +175,21 @@ namespace Demo6_WaveForms {
     }
 
     //--------------------------------------------------------------------------------------------------
+    void ReportParams() {
+        printf("Instrument: %s\r\n", WaveFormToString(g_currentWaveForm));
+    }
+
+    //--------------------------------------------------------------------------------------------------
     void OnKey (char key, bool pressed) {
 
         // pressing numbers switches instruments
         if (pressed) {
             switch (key)
             {
-                case '1': g_currentWaveForm = e_waveSine; return;
-                case '2': g_currentWaveForm = e_waveSaw; return;
-                case '3': g_currentWaveForm = e_waveSquare; return;
-                case '4': g_currentWaveForm = e_waveTriangle; return;
+                case '1': g_currentWaveForm = e_waveSine; ReportParams(); return;
+                case '2': g_currentWaveForm = e_waveSaw; ReportParams(); return;
+                case '3': g_currentWaveForm = e_waveSquare; ReportParams(); return;
+                case '4': g_currentWaveForm = e_waveTriangle; ReportParams(); return;
             }
         }
 

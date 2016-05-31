@@ -16,6 +16,16 @@ namespace Demo2_Popping {
         e_notesSlideNoPop,
     };
 
+    const char* ModeToString (EMode mode) {
+        switch (mode) {
+            case e_silence: return "Silence";
+            case e_notesPop: return "Popping Notes";
+            case e_notesNoPop: return "Notes Without Popping";
+            case e_notesSlideNoPop: return "Sliding Notes";
+        }
+        return "???";
+    }
+
     EMode g_mode = e_silence;
 
     //--------------------------------------------------------------------------------------------------
@@ -152,6 +162,11 @@ namespace Demo2_Popping {
     }
 
     //--------------------------------------------------------------------------------------------------
+    void ReportParams () {
+        printf("%s\r\n", ModeToString(g_mode));
+    }
+
+    //--------------------------------------------------------------------------------------------------
     void OnKey (char key, bool pressed) {
 
         // only listen to key down events
@@ -160,15 +175,15 @@ namespace Demo2_Popping {
 
         // switch mode based on key press
         switch (key) {
-            case '1': g_mode = e_notesPop; break;
-            case '2': g_mode = e_notesNoPop; break;
-            case '3': g_mode = e_notesSlideNoPop; break;
+            case '1': g_mode = e_notesPop; ReportParams(); break;
+            case '2': g_mode = e_notesNoPop; ReportParams(); break;
+            case '3': g_mode = e_notesSlideNoPop; ReportParams(); break;
         }
     }
 
     //--------------------------------------------------------------------------------------------------
     void OnEnterDemo () {
         g_mode = e_silence;
-        printf("n1 = notes with pop.\r\n2 = notes without pop.\r\n3 = note slide without pop.\r\n");
+        printf("1 = notes with pop.\r\n2 = notes without pop.\r\n3 = note slide without pop.\r\n");
     }
 }

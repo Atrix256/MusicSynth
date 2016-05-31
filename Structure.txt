@@ -126,11 +126,13 @@ Presentation Outline:
   * show: book about it, talk about complexities
   * demo: play some FM synth notes
   * great read: http://the-all.org/tx81z/fm_overview.html (get some notes there, like what increasing speed vs depth does)
+ * DEMO = 9_FMSynth
 
 --12--
  * Delay (echo)
   * talk about having a buffer of the right number of samples with some feedback volume.  Circular buffer.
   * demo: play some notes that are aligned to timing, and some that aren't.
+ * DEMO = 10_Delay
 
 --13--
  * Reverb

@@ -1,5 +1,5 @@
 //--------------------------------------------------------------------------------------------------
-// Demo8_TremVib.cpp
+// Demo9_FMSynth.cpp
 //
 // Logic for the demo of the same name
 //
@@ -24,6 +24,7 @@ namespace Demo9_FMSynth {
 
         e_modeFM1,
         e_modeFM2,
+        e_modeFM3,
 
         e_modeCount
     };
@@ -36,8 +37,9 @@ namespace Demo9_FMSynth {
             case e_modeSpeed3: return "Speed3 (500hz, +- 10hz)";
             case e_modeDepth2: return "Depth2 (500hz, +-100hz)";
             case e_modeDepth3: return "Depth3 (500hz, +-500hz)";
-            case e_modeFM1: return "FM1 - one modulator to one carrier, 50% vibrato frequency. Horn?";
-            case e_modeFM2: return "FM2 - ";
+            case e_modeFM1: return "FM1 - modulator 0.5, carrier. Horn.";
+            case e_modeFM2: return "FM2 - modulator 0.1, modulator 2.5, carrier. Alien fx.";
+            case e_modeFM3: return "FN3 - modulator 2.37, carrier. Diff envelope for modulator and carrier. bell and biased inverse bell. Metal Drum.";
         }
         return "???";
     }
@@ -71,7 +73,7 @@ namespace Demo9_FMSynth {
     std::mutex          g_notesMutex;
 
     //--------------------------------------------------------------------------------------------------
-    inline float GenerateEnvelope (SNote& note, float ageInSeconds, float sampleRate) {
+    inline float GenerateEnvelope_Simple (SNote& note, float ageInSeconds, float sampleRate) {
 
         // this just puts a short envelope on the beginning and end of the note and kills the note
         // when the release envelope is done.
@@ -118,9 +120,29 @@ namespace Demo9_FMSynth {
     }
 
     //--------------------------------------------------------------------------------------------------
+    inline float GenerateEnvelope_Bell (SNote& note, float ageInSeconds) {
+        // note lifetime
+        static const float c_noteLifeTime = 1.00f;
+
+        // use an envelope that sounds "bell like"
+        float envelope = Envelope3Pt(
+            ageInSeconds,
+            0.0f , 0.0f,
+            0.003f, 1.0f,
+            c_noteLifeTime, 0.0f
+        );
+
+        // kill notes that are too old
+        if (ageInSeconds > c_noteLifeTime)
+            note.m_dead = true;
+
+        return envelope;
+    }
+
+    //--------------------------------------------------------------------------------------------------
     inline float AdvanceSineWave (float& phase, float frequency, float sampleRate) {
 
-        // calculate the sine value
+        // calculate the sine wave value
         float ret = SineWave(phase);
 
         // advance phase
@@ -131,80 +153,78 @@ namespace Demo9_FMSynth {
     }
 
     //--------------------------------------------------------------------------------------------------
+    inline float FMOperator (float& phase, float frequency, float modulationSample, float envelopeSample, float sampleRate) {
+        return AdvanceSineWave(phase, frequency + modulationSample, sampleRate) * envelopeSample;
+    }
+
+    //--------------------------------------------------------------------------------------------------
     inline float GenerateNoteSample (SNote& note, float sampleRate) {
 
         // calculate our age in seconds and advance our age in samples, by 1 sample
         float ageInSeconds = float(note.m_age) / sampleRate;
         ++note.m_age;
-
-        // generate the envelope value for our note
-        float envelope = GenerateEnvelope(note, ageInSeconds, sampleRate);
-
+        
         // calculate frequency for specific mode
         float frequency = note.m_frequency;
         switch (note.m_mode) {
             case e_modeNormal: {
+                float envelope = GenerateEnvelope_Simple(note, ageInSeconds, sampleRate);
+
                 return AdvanceSineWave(note.m_phase, note.m_frequency, sampleRate) * envelope;
             }
             case e_modeSpeed1: {
+                float envelope = GenerateEnvelope_Simple(note, ageInSeconds, sampleRate);
+
                 float modulatorWave = AdvanceSineWave(note.m_phase2, 10.0f, sampleRate) * 10.0f;
                 return AdvanceSineWave(note.m_phase, note.m_frequency + modulatorWave, sampleRate) * envelope;
             }
             case e_modeSpeed2: {
+                float envelope = GenerateEnvelope_Simple(note, ageInSeconds, sampleRate);
+
                 float modulatorWave = AdvanceSineWave(note.m_phase2, 100.0f, sampleRate) * 10.0f;
                 return AdvanceSineWave(note.m_phase, note.m_frequency + modulatorWave, sampleRate) * envelope;
             }
             case e_modeSpeed3: {
+                float envelope = GenerateEnvelope_Simple(note, ageInSeconds, sampleRate);
+
                 float modulatorWave = AdvanceSineWave(note.m_phase2, 500.0f, sampleRate) * 10.0f;
                 return AdvanceSineWave(note.m_phase, note.m_frequency + modulatorWave, sampleRate) * envelope;
             }
-            case e_modeDepth2:  {
+            case e_modeDepth2: {
+                float envelope = GenerateEnvelope_Simple(note, ageInSeconds, sampleRate);
+
                 float modulatorWave = AdvanceSineWave(note.m_phase2, 500.0f, sampleRate) * 100.0f;
                 return AdvanceSineWave(note.m_phase, note.m_frequency + modulatorWave, sampleRate) * envelope;
             }
-            case e_modeDepth3:  {
+            case e_modeDepth3: {
+                float envelope = GenerateEnvelope_Simple(note, ageInSeconds, sampleRate);
+
                 float modulatorWave = AdvanceSineWave(note.m_phase2, 500.0f, sampleRate) * 500.0f;
                 return AdvanceSineWave(note.m_phase, note.m_frequency + modulatorWave, sampleRate) * envelope;
             }
             case e_modeFM1: {
+                float envelope = GenerateEnvelope_Simple(note, ageInSeconds, sampleRate);
+
                 float modulatorWave = AdvanceSineWave(note.m_phase2, note.m_frequency * 0.5f, sampleRate) * note.m_frequency;
                 return AdvanceSineWave(note.m_phase, note.m_frequency + modulatorWave, sampleRate) * envelope;
-                break;
+
+                // the above is the same as this:
+                //float modulatorWave = FMOperator(note.m_phase2, note.m_frequency * 0.5f, 0.0f, note.m_frequency, sampleRate);
+                //return FMOperator(note.m_phase, note.m_frequency, modulatorWave, envelope, sampleRate);
             }
             case e_modeFM2: {
-                float modulatorWave2 = AdvanceSineWave(note.m_phase3, note.m_frequency * 0.5f, sampleRate) * note.m_frequency * 0.75;
+                float envelope = GenerateEnvelope_Simple(note, ageInSeconds, sampleRate);
 
-                float modulatorWave = AdvanceSineWave(note.m_phase2, (note.m_frequency + modulatorWave2) * 1.0f, sampleRate) * note.m_frequency * 1.0f;
+                float modulatorWave2 = FMOperator(note.m_phase3, note.m_frequency * 0.1f, 0.0f, note.m_frequency, sampleRate);
+                float modulatorWave = FMOperator(note.m_phase2, note.m_frequency * 2.5f, modulatorWave2, note.m_frequency, sampleRate);
+                return FMOperator(note.m_phase, note.m_frequency, modulatorWave, envelope, sampleRate);
+            }
+            case e_modeFM3: {
+                float envelope = GenerateEnvelope_Bell(note, ageInSeconds);
+                float modEnvelope = Bias(1.0f - envelope, 0.9f);
 
-                return AdvanceSineWave(note.m_phase, note.m_frequency + modulatorWave, sampleRate) * envelope;
-
-
-                // TODO: make the alieny sounding thing use the pattern above!
-
-                frequency += SineWave(ageInSeconds * note.m_frequency * 0.5f) * note.m_frequency * 1.0f;
-
-         
-                // an interesting tone
-                //frequency += SineWave(ageInSeconds * note.m_frequency * 16.0f) * note.m_frequency * 1.0f;
-
-
-
-                // This is a decent sound but not sure if correct. Alienish but some static too. makes me think it's not right.
-                /*
-                // a modulator wave adjusts the frequency of a modulator wave
-                float modFrequency = SineWave(ageInSeconds * note.m_frequency * 0.5f) * note.m_frequency * 0.75f;
-
-                // that modulator wave adjusts the frequency of the main wave
-                frequency += SineWave(ageInSeconds * modFrequency * 1.3f) * modFrequency * 1.8f;
-
-                // advance phase, making sure to keep it between 0 and 1
-                note.m_phase = std::fmodf(note.m_phase + frequency / sampleRate, 1.0f);
-
-                // generate the sine wave
-                return SineWave(note.m_phase) * envelope;
-
-                */
-
+                float modulatorWave = FMOperator(note.m_phase2, note.m_frequency * 2.37f, 0.0f, note.m_frequency * modEnvelope, sampleRate);
+                return FMOperator(note.m_phase, note.m_frequency, modulatorWave, envelope, sampleRate);
             }
         }
 
@@ -338,7 +358,6 @@ namespace Demo9_FMSynth {
             }
         }
 
-
         // if releasing a note, we need to find and kill the flute note of the same frequency
         if (!pressed) {
             StopNote(frequency);
@@ -352,24 +371,9 @@ namespace Demo9_FMSynth {
 
     //--------------------------------------------------------------------------------------------------
     void OnEnterDemo () {
-        // TODO: update these directions
         g_mode = e_modeNormal;
         printf("Letter keys to play notes.\r\nleft shift / control is super low frequency.\r\n");
         printf("1 = Increase Mode\r\n");
         printf("2 = Decrease Mode\r\n");
     }
 }
-
-/*
-
-TODO:
-* a couple instrument modes
-* a couple to show that faster vibrato = ?
-* a couple to show that deeper vibrato = ?
-* 2-3 real instrument sounds.  paralel and cascading operators?
-
-* make something with more complex envelopes.  like gets brighter as it gets quieter kinda thing
-
-? ask dsp how to combine FM operators "correctly"?
-
-*/

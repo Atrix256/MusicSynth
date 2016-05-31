@@ -275,12 +275,6 @@ namespace Demo5_Envelopes {
         // figure out what frequency to play
         float frequency = 0.0f;
         switch (key) {
-            // number row - change envelope
-            case '1': g_currentEnvelope = e_envelopeMinimal; return;
-            case '2': g_currentEnvelope = e_envelopeBell; return;
-            case '3': g_currentEnvelope = e_envelopeReverseBell; return;
-            case '4': g_currentEnvelope = e_envelopeFlute; return;
-
             // QWERTY row
             case 'Q': frequency = NoteToFrequency(3, 0); break;
             case 'W': frequency = NoteToFrequency(3, 1); break;

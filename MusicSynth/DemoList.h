@@ -14,5 +14,7 @@ DEMO(6_WaveForms)
 DEMO(7_BLWaveForms)
 DEMO(8_TremVib)
 DEMO(9_FMSynth)
+DEMO(10_Delay)
+DEMO(11_Reverb)
 
 #undef DEMO

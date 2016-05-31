@@ -237,12 +237,29 @@ inline float Envelope4Pt (
     return Lerp(volume2, volume3, percent);
 }
 
-inline float AmplitudeTodB(float amplitude)
+//--------------------------------------------------------------------------------------------------
+inline float AmplitudeTodB (float amplitude)
 {
   return 20.0f * log10(amplitude);
 }
  
-inline float dBToAmplitude(float db)
+//--------------------------------------------------------------------------------------------------
+inline float dBToAmplitude (float db)
 {
   return std::powf(10.0f, db/20.0f);
+}
+
+//--------------------------------------------------------------------------------------------------
+inline float Bias (float time, float bias)
+{
+  return (time / ((((1.0f/bias) - 2.0f)*(1.0f - time))+1.0f));
+}
+
+//--------------------------------------------------------------------------------------------------
+inline float Gain (float time, float gain)
+{
+  if(time < 0.5f)
+      return Bias(time * 2.0f, gain) / 2.0f;
+  else
+      return Bias(time * 2.0f - 1.0f, 1.0f - gain) / 2.0f + 0.5f;
 }

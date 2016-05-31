@@ -1,5 +1,5 @@
 //--------------------------------------------------------------------------------------------------
-// Demo7_BLWaveForms.cpp
+// Demo11_Reverb.cpp
 //
 // Logic for the demo of the same name
 //
@@ -8,7 +8,7 @@
 #include "DemoMgr.h"
 #include <algorithm>
 
-namespace Demo7_BLWaveForms {
+namespace Demo11_Reverb {
 
     enum EWaveForm {
         e_waveSine,
@@ -17,12 +17,27 @@ namespace Demo7_BLWaveForms {
         e_waveTriangle
     };
 
+    enum EReverb {
+        e_reverbNone,
+        e_reverbMultitap,
+        e_reverbConvolution,
+    };
+
     const char* WaveFormToString (EWaveForm waveForm) {
         switch (waveForm) {
             case e_waveSine: return "Sine";
             case e_waveSaw: return "Bandlimited Saw";
             case e_waveSquare: return "Bandlimited Square";
             case e_waveTriangle: return "Bandlimited Triangle";
+        }
+        return "???";
+    }
+
+    const char* ReverbToString (EReverb reverb) {
+        switch (reverb) {
+            case e_reverbNone: return "None";
+            case e_reverbMultitap: return "Multitap";
+            case e_reverbConvolution: return "Convolution";
         }
         return "???";
     }
@@ -47,6 +62,68 @@ namespace Demo7_BLWaveForms {
     std::vector<SNote>  g_notes;
     std::mutex          g_notesMutex;
     EWaveForm           g_currentWaveForm;
+    EReverb             g_currentReverb;
+
+    //--------------------------------------------------------------------------------------------------
+    struct SMultiTapReverbEffect {
+
+        SMultiTapReverbEffect()
+            : m_buffer(nullptr)
+            , m_bufferSize(0)
+            , m_feedback(1.0f)
+            , m_sampleIndex(0) {}
+
+        void SetEffectParams (float delayTime, float sampleRate, size_t numChannels, float feedback) {
+
+            size_t numSamples = size_t(delayTime * sampleRate) * numChannels;
+
+            delete[] m_buffer;
+
+            if (numSamples == 0) {
+                m_buffer = nullptr;
+                return;
+            }
+
+            m_buffer = new float[numSamples];
+            m_bufferSize = numSamples;
+            m_feedback = feedback;
+
+            ClearBuffer();
+        }
+
+        void ClearBuffer (void) {
+            if (m_buffer)
+                memset(m_buffer, 0, sizeof(float)*m_bufferSize);
+            m_sampleIndex = 0;
+        }
+
+        float AddSample (float sample) {
+            if (!m_buffer)
+                return sample;
+
+            // apply feedback in the delay buffer, for whatever is currently in there.
+            // also mix in our new sample.
+            m_buffer[m_sampleIndex] = m_buffer[m_sampleIndex] * m_feedback + sample;
+
+            // cache off our value to return
+            float ret = m_buffer[m_sampleIndex];
+
+            // move the index to the next location
+            m_sampleIndex = (m_sampleIndex + 1) % m_bufferSize;
+
+            // return the value with echo
+            return ret;
+        }
+
+        ~SMultiTapReverbEffect() {
+            delete[] m_buffer;
+        }
+
+        float*  m_buffer;
+        size_t  m_bufferSize;
+        float   m_feedback;
+        size_t  m_sampleIndex;
+    };
 
     //--------------------------------------------------------------------------------------------------
     inline float GenerateEnvelope (SNote& note, float ageInSeconds, float sampleRate) {
@@ -97,7 +174,6 @@ namespace Demo7_BLWaveForms {
 
     //--------------------------------------------------------------------------------------------------
     inline float GenerateNoteSample (SNote& note, float sampleRate) {
-
         // calculate our age in seconds and advance our age in samples, by 1 sample
         float ageInSeconds = float(note.m_age) / sampleRate;
         ++note.m_age;
@@ -123,6 +199,35 @@ namespace Demo7_BLWaveForms {
     //--------------------------------------------------------------------------------------------------
     void GenerateAudioSamples (float *outputBuffer, size_t framesPerBuffer, size_t numChannels, float sampleRate) {
 
+        // re-create our effect if the settings have changed
+        static SMultiTapReverbEffect multiTapReverbEffect;
+        static EReverb lastReverb = e_reverbNone;
+        EReverb currentReverb = g_currentReverb;
+        if (currentReverb != lastReverb) {
+            lastReverb = currentReverb;
+            multiTapReverbEffect.ClearBuffer();
+            /*
+            switch (currentDelay) {
+                case e_delayNone: {
+                    delayEffect.SetEffectParams(0.0f, sampleRate, numChannels, 0.0f);
+                    break;
+                }
+                case e_delay1: {
+                    delayEffect.SetEffectParams(0.25f, sampleRate, numChannels, 0.35f);
+                    break;
+                }
+                case e_delay2: {
+                    delayEffect.SetEffectParams(0.66f, sampleRate, numChannels, 0.4f);
+                    break;
+                }
+                case e_delay3: {
+                    delayEffect.SetEffectParams(1.0f, sampleRate, numChannels, 0.33f);
+                    break;
+                }
+            }
+            */
+        }
+
         // get a lock on our notes vector
         std::lock_guard<std::mutex> guard(g_notesMutex);
 
@@ -139,9 +244,9 @@ namespace Demo7_BLWaveForms {
                 }
             );
 
-            // copy the value to all audio channels
+            // put the value through the effect, for all channels
             for (size_t channel = 0; channel < numChannels; ++channel)
-                outputBuffer[channel] = value;
+                outputBuffer[channel] = multiTapReverbEffect.AddSample(value);
         }
 
         // remove notes that have died
@@ -176,8 +281,8 @@ namespace Demo7_BLWaveForms {
     }
 
     //--------------------------------------------------------------------------------------------------
-    void ReportParams() {
-        printf("Instrument: %s\r\n", WaveFormToString(g_currentWaveForm));
+    void ReportParams () {
+        printf("Instrument: %s  Reverb: %s\r\n", WaveFormToString(g_currentWaveForm), ReverbToString(g_currentReverb));
     }
 
     //--------------------------------------------------------------------------------------------------
@@ -191,6 +296,9 @@ namespace Demo7_BLWaveForms {
                 case '2': g_currentWaveForm = e_waveSaw; ReportParams(); return;
                 case '3': g_currentWaveForm = e_waveSquare; ReportParams(); return;
                 case '4': g_currentWaveForm = e_waveTriangle; ReportParams(); return;
+                case '5': g_currentReverb = e_reverbNone; ReportParams(); return;
+                case '6': g_currentReverb = e_reverbMultitap; ReportParams(); return;
+                case '7': g_currentReverb = e_reverbConvolution; ReportParams(); return;
             }
         }
 
@@ -248,7 +356,6 @@ namespace Demo7_BLWaveForms {
             }
         }
 
-
         // if releasing a note, we need to find and kill the flute note of the same frequency
         if (!pressed) {
             StopNote(frequency);
@@ -263,10 +370,22 @@ namespace Demo7_BLWaveForms {
     //--------------------------------------------------------------------------------------------------
     void OnEnterDemo () {
         g_currentWaveForm = e_waveSine;
+        g_currentReverb = e_reverbNone;
         printf("Letter keys to play notes.\r\nleft shift / control is super low frequency.\r\n");
         printf("1 = Sine\r\n");
         printf("2 = Band Limited Saw\r\n");
         printf("3 = Band Limited Square\r\n");
         printf("4 = Band Limited Triangle\r\n");
+        printf("5 = Reverb Off\r\n");
+        printf("6 = Multitap Reverb\r\n");
+        printf("7 = Convolution Reverb\r\n");
     }
 }
+
+/*
+
+TODO:
+* do multitap and convolution side by side to be able to compare
+ ? how do we do real time convolution reverb though?
+
+*/
