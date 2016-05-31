@@ -1,5 +1,5 @@
 //--------------------------------------------------------------------------------------------------
-// Demo7_BLWaveForms.cpp
+// Demo8_TremVib.cpp
 //
 // Logic for the demo of the same name
 //
@@ -8,35 +8,67 @@
 #include "DemoMgr.h"
 #include <algorithm>
 
-namespace Demo7_BLWaveForms {
+namespace Demo9_FMSynth {
 
-    enum EWaveForm {
-        e_waveSine,
-        e_waveSaw,
-        e_waveSquare,
-        e_waveTriangle
+
+    // 300, 50 = metalic sounding organ thing
+    // 3000, 50 = smoother sounding thing.
+
+    enum EMode {
+        e_modeNormal,
+        e_modeSpeed1,
+        e_modeSpeed2,
+        e_modeSpeed3,
+        e_modeDepth2,
+        e_modeDepth3,
+
+        e_modeFM1,
+        e_modeFM2,
+
+        e_modeCount
     };
 
+    const char* ModeToString (EMode mode) {
+        switch (mode) {
+            case e_modeNormal: return "Normal";
+            case e_modeSpeed1: return "Speed1 (10 hz, +- 10hz)";
+            case e_modeSpeed2: return "Speed2 (100hz, +- 10hz)";
+            case e_modeSpeed3: return "Speed3 (500hz, +- 10hz)";
+            case e_modeDepth2: return "Depth2 (500hz, +-100hz)";
+            case e_modeDepth3: return "Depth3 (500hz, +-500hz)";
+            case e_modeFM1: return "FM1 - one modulator to one carrier, 50% vibrato frequency. Horn?";
+            case e_modeFM2: return "FM2 - ";
+        }
+        return "???";
+    }
+
+    EMode g_mode = e_modeNormal;
+
     struct SNote {
-        SNote(float frequency, EWaveForm waveForm)
+        SNote(float frequency, EMode mode)
             : m_frequency(frequency)
-            , m_waveForm(waveForm)
+            , m_mode(mode)
             , m_age(0)
             , m_dead(false)
             , m_wantsKeyRelease(false)
-            , m_releaseAge(0) {}
+            , m_releaseAge(0)
+            , m_phase(0.0f)
+            , m_phase2(0.0f)
+            , m_phase3(0.0f) {}
 
-        float       m_frequency;
-        EWaveForm   m_waveForm;
-        size_t      m_age;
-        bool        m_dead;
-        bool        m_wantsKeyRelease;
-        size_t      m_releaseAge;
+        float           m_frequency;
+        EMode           m_mode;
+        size_t          m_age;
+        bool            m_dead;
+        bool            m_wantsKeyRelease;
+        size_t          m_releaseAge;
+        float           m_phase;
+        float           m_phase2;
+        float           m_phase3;
     };
 
     std::vector<SNote>  g_notes;
     std::mutex          g_notesMutex;
-    EWaveForm           g_currentWaveForm;
 
     //--------------------------------------------------------------------------------------------------
     inline float GenerateEnvelope (SNote& note, float ageInSeconds, float sampleRate) {
@@ -86,6 +118,19 @@ namespace Demo7_BLWaveForms {
     }
 
     //--------------------------------------------------------------------------------------------------
+    inline float AdvanceSineWave (float& phase, float frequency, float sampleRate) {
+
+        // calculate the sine value
+        float ret = SineWave(phase);
+
+        // advance phase
+        phase = std::fmodf(phase + frequency / sampleRate, 1.0f);
+
+        // return the sine wave value
+        return ret;
+    }
+
+    //--------------------------------------------------------------------------------------------------
     inline float GenerateNoteSample (SNote& note, float sampleRate) {
 
         // calculate our age in seconds and advance our age in samples, by 1 sample
@@ -93,18 +138,74 @@ namespace Demo7_BLWaveForms {
         ++note.m_age;
 
         // generate the envelope value for our note
-        // decrease note volume a bit, because the volume adjustments don't seem to be quite enough
-        float envelope = GenerateEnvelope(note, ageInSeconds, sampleRate) * 0.8f;
+        float envelope = GenerateEnvelope(note, ageInSeconds, sampleRate);
 
-        // generate the audio sample value for the current time.
-        // Note that it is ok that we are basing audio samples on age instead of phase, because the
-        // frequency never changes and we envelope the front and back to avoid popping.
-        float phase = std::fmodf(ageInSeconds * note.m_frequency, 1.0f);
-        switch (note.m_waveForm) {
-            case e_waveSine:    return SineWave(phase) * envelope;
-            case e_waveSaw:     return SawWaveBandLimited(phase, 10) * envelope;
-            case e_waveSquare:  return SquareWaveBandLimited(phase, 10) * envelope;
-            case e_waveTriangle:return TriangleWaveBandLimited(phase, 10) * envelope;
+        // calculate frequency for specific mode
+        float frequency = note.m_frequency;
+        switch (note.m_mode) {
+            case e_modeNormal: {
+                return AdvanceSineWave(note.m_phase, note.m_frequency, sampleRate) * envelope;
+            }
+            case e_modeSpeed1: {
+                float modulatorWave = AdvanceSineWave(note.m_phase2, 10.0f, sampleRate) * 10.0f;
+                return AdvanceSineWave(note.m_phase, note.m_frequency + modulatorWave, sampleRate) * envelope;
+            }
+            case e_modeSpeed2: {
+                float modulatorWave = AdvanceSineWave(note.m_phase2, 100.0f, sampleRate) * 10.0f;
+                return AdvanceSineWave(note.m_phase, note.m_frequency + modulatorWave, sampleRate) * envelope;
+            }
+            case e_modeSpeed3: {
+                float modulatorWave = AdvanceSineWave(note.m_phase2, 500.0f, sampleRate) * 10.0f;
+                return AdvanceSineWave(note.m_phase, note.m_frequency + modulatorWave, sampleRate) * envelope;
+            }
+            case e_modeDepth2:  {
+                float modulatorWave = AdvanceSineWave(note.m_phase2, 500.0f, sampleRate) * 100.0f;
+                return AdvanceSineWave(note.m_phase, note.m_frequency + modulatorWave, sampleRate) * envelope;
+            }
+            case e_modeDepth3:  {
+                float modulatorWave = AdvanceSineWave(note.m_phase2, 500.0f, sampleRate) * 500.0f;
+                return AdvanceSineWave(note.m_phase, note.m_frequency + modulatorWave, sampleRate) * envelope;
+            }
+            case e_modeFM1: {
+                float modulatorWave = AdvanceSineWave(note.m_phase2, note.m_frequency * 0.5f, sampleRate) * note.m_frequency;
+                return AdvanceSineWave(note.m_phase, note.m_frequency + modulatorWave, sampleRate) * envelope;
+                break;
+            }
+            case e_modeFM2: {
+                float modulatorWave2 = AdvanceSineWave(note.m_phase3, note.m_frequency * 0.5f, sampleRate) * note.m_frequency * 0.75;
+
+                float modulatorWave = AdvanceSineWave(note.m_phase2, (note.m_frequency + modulatorWave2) * 1.0f, sampleRate) * note.m_frequency * 1.0f;
+
+                return AdvanceSineWave(note.m_phase, note.m_frequency + modulatorWave, sampleRate) * envelope;
+
+
+                // TODO: make the alieny sounding thing use the pattern above!
+
+                frequency += SineWave(ageInSeconds * note.m_frequency * 0.5f) * note.m_frequency * 1.0f;
+
+         
+                // an interesting tone
+                //frequency += SineWave(ageInSeconds * note.m_frequency * 16.0f) * note.m_frequency * 1.0f;
+
+
+
+                // This is a decent sound but not sure if correct. Alienish but some static too. makes me think it's not right.
+                /*
+                // a modulator wave adjusts the frequency of a modulator wave
+                float modFrequency = SineWave(ageInSeconds * note.m_frequency * 0.5f) * note.m_frequency * 0.75f;
+
+                // that modulator wave adjusts the frequency of the main wave
+                frequency += SineWave(ageInSeconds * modFrequency * 1.3f) * modFrequency * 1.8f;
+
+                // advance phase, making sure to keep it between 0 and 1
+                note.m_phase = std::fmodf(note.m_phase + frequency / sampleRate, 1.0f);
+
+                // generate the sine wave
+                return SineWave(note.m_phase) * envelope;
+
+                */
+
+            }
         }
 
         return 0.0f;
@@ -168,14 +269,18 @@ namespace Demo7_BLWaveForms {
     //--------------------------------------------------------------------------------------------------
     void OnKey (char key, bool pressed) {
 
-        // pressing numbers switches instruments
         if (pressed) {
-            switch (key)
-            {
-                case '1': g_currentWaveForm = e_waveSine; return;
-                case '2': g_currentWaveForm = e_waveSaw; return;
-                case '3': g_currentWaveForm = e_waveSquare; return;
-                case '4': g_currentWaveForm = e_waveTriangle; return;
+            if (key == '1') {
+                if (g_mode < e_modeCount - 1)
+                    g_mode = EMode(g_mode + 1);
+                printf("mode = %i %s\r\n", g_mode, ModeToString(g_mode));
+                return;
+            }
+            else if (key == '2') {
+                if (g_mode > 0)
+                    g_mode = EMode(g_mode - 1);
+                printf("mode = %i %s\r\n", g_mode, ModeToString(g_mode));
+                return;
             }
         }
 
@@ -242,16 +347,29 @@ namespace Demo7_BLWaveForms {
 
         // get a lock on our notes vector and add the new note
         std::lock_guard<std::mutex> guard(g_notesMutex);
-        g_notes.push_back(SNote(frequency, g_currentWaveForm));
+        g_notes.push_back(SNote(frequency, g_mode));
     }
 
     //--------------------------------------------------------------------------------------------------
     void OnEnterDemo () {
-        g_currentWaveForm = e_waveSine;
+        // TODO: update these directions
+        g_mode = e_modeNormal;
         printf("Letter keys to play notes.\r\nleft shift / control is super low frequency.\r\n");
-        printf("1 = Sine\r\n");
-        printf("2 = Band Limited Saw\r\n");
-        printf("3 = Band Limited Square\r\n");
-        printf("4 = Band Limited Triangle\r\n");
+        printf("1 = Increase Mode\r\n");
+        printf("2 = Decrease Mode\r\n");
     }
 }
+
+/*
+
+TODO:
+* a couple instrument modes
+* a couple to show that faster vibrato = ?
+* a couple to show that deeper vibrato = ?
+* 2-3 real instrument sounds.  paralel and cascading operators?
+
+* make something with more complex envelopes.  like gets brighter as it gets quieter kinda thing
+
+? ask dsp how to combine FM operators "correctly"?
+
+*/

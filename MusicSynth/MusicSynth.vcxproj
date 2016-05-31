@@ -74,6 +74,8 @@
     <ClCompile Include="Demo4_Mixing.cpp" />
     <ClCompile Include="Demo5_Envelopes.cpp" />
     <ClCompile Include="Demo7_BLWaveForms.cpp" />
+    <ClCompile Include="Demo8_TremVib.cpp" />
+    <ClCompile Include="Demo9_FMSynth.cpp" />
     <ClCompile Include="DemoMgr.cpp" />
     <ClCompile Include="Demo1_Sine.cpp" />
     <ClCompile Include="Main.cpp" />

@@ -1,5 +1,5 @@
 //--------------------------------------------------------------------------------------------------
-// Demo7_BLWaveForms.cpp
+// Demo8_TremVib.cpp
 //
 // Logic for the demo of the same name
 //
@@ -8,7 +8,7 @@
 #include "DemoMgr.h"
 #include <algorithm>
 
-namespace Demo7_BLWaveForms {
+namespace Demo8_TremVib {
 
     enum EWaveForm {
         e_waveSine,
@@ -17,26 +17,41 @@ namespace Demo7_BLWaveForms {
         e_waveTriangle
     };
 
+    enum EEffectSpeed {
+        e_effectOff,
+        e_effectSlow,
+        e_effectMedium,
+        e_effectFast
+    };
+
     struct SNote {
-        SNote(float frequency, EWaveForm waveForm)
+        SNote(float frequency, EWaveForm waveForm, EEffectSpeed tremolo, EEffectSpeed vibrato)
             : m_frequency(frequency)
             , m_waveForm(waveForm)
+            , m_tremolo(tremolo)
+            , m_vibrato(vibrato)
             , m_age(0)
             , m_dead(false)
             , m_wantsKeyRelease(false)
-            , m_releaseAge(0) {}
+            , m_releaseAge(0)
+            , m_phase(0.0f) {}
 
-        float       m_frequency;
-        EWaveForm   m_waveForm;
-        size_t      m_age;
-        bool        m_dead;
-        bool        m_wantsKeyRelease;
-        size_t      m_releaseAge;
+        float           m_frequency;
+        EWaveForm       m_waveForm;
+        EEffectSpeed    m_tremolo;
+        EEffectSpeed    m_vibrato;
+        size_t          m_age;
+        bool            m_dead;
+        bool            m_wantsKeyRelease;
+        size_t          m_releaseAge;
+        float           m_phase;
     };
 
     std::vector<SNote>  g_notes;
     std::mutex          g_notesMutex;
     EWaveForm           g_currentWaveForm;
+    EEffectSpeed        g_tremolo;
+    EEffectSpeed        g_vibrato;
 
     //--------------------------------------------------------------------------------------------------
     inline float GenerateEnvelope (SNote& note, float ageInSeconds, float sampleRate) {
@@ -86,6 +101,18 @@ namespace Demo7_BLWaveForms {
     }
 
     //--------------------------------------------------------------------------------------------------
+    inline float GetEffectFrequency (EEffectSpeed speed) {
+        switch (speed) {
+            case e_effectOff: return 0.0;
+            case e_effectSlow: return 2.8f;
+            case e_effectMedium: return 10.0f;
+            case e_effectFast: return 20.0f;
+        }
+
+        return 0.0f;
+    }
+
+    //--------------------------------------------------------------------------------------------------
     inline float GenerateNoteSample (SNote& note, float sampleRate) {
 
         // calculate our age in seconds and advance our age in samples, by 1 sample
@@ -96,15 +123,25 @@ namespace Demo7_BLWaveForms {
         // decrease note volume a bit, because the volume adjustments don't seem to be quite enough
         float envelope = GenerateEnvelope(note, ageInSeconds, sampleRate) * 0.8f;
 
-        // generate the audio sample value for the current time.
-        // Note that it is ok that we are basing audio samples on age instead of phase, because the
-        // frequency never changes and we envelope the front and back to avoid popping.
-        float phase = std::fmodf(ageInSeconds * note.m_frequency, 1.0f);
+        // adjust our envelope by applying tremolo.
+        // the tremolo affects the amplitude by multiplying it between 0.5 and 1.0 in a sine wave.
+        envelope *= SineWave(ageInSeconds * GetEffectFrequency(note.m_tremolo)) * 0.25f + 0.5f;
+
+        // calculate our frequency by starting with the base note and applying vibrato.
+        // our vibratto adds plus or minus 5% of the frequency, on a sine wave.
+        float frequency = note.m_frequency;
+        frequency += frequency * SineWave(ageInSeconds * GetEffectFrequency(note.m_vibrato)) * 0.05f;
+
+        // advance phase, making sure to keep it between 0 and 1
+        note.m_phase += frequency / sampleRate;
+        note.m_phase = std::fmodf(note.m_phase, 1.0);
+
+        // generate the audio sample value for the current phase.
         switch (note.m_waveForm) {
-            case e_waveSine:    return SineWave(phase) * envelope;
-            case e_waveSaw:     return SawWaveBandLimited(phase, 10) * envelope;
-            case e_waveSquare:  return SquareWaveBandLimited(phase, 10) * envelope;
-            case e_waveTriangle:return TriangleWaveBandLimited(phase, 10) * envelope;
+            case e_waveSine:    return SineWave(note.m_phase) * envelope;
+            case e_waveSaw:     return SawWaveBandLimited(note.m_phase, 10) * envelope;
+            case e_waveSquare:  return SquareWaveBandLimited(note.m_phase, 10) * envelope;
+            case e_waveTriangle:return TriangleWaveBandLimited(note.m_phase, 10) * envelope;
         }
 
         return 0.0f;
@@ -168,14 +205,16 @@ namespace Demo7_BLWaveForms {
     //--------------------------------------------------------------------------------------------------
     void OnKey (char key, bool pressed) {
 
-        // pressing numbers switches instruments
+        // pressing numbers switches instruments, or adjusts effects
         if (pressed) {
             switch (key)
             {
-                case '1': g_currentWaveForm = e_waveSine; return;
-                case '2': g_currentWaveForm = e_waveSaw; return;
-                case '3': g_currentWaveForm = e_waveSquare; return;
-                case '4': g_currentWaveForm = e_waveTriangle; return;
+                case '1': g_currentWaveForm = e_waveSine; printf("instrument: sine\r\n"); return;
+                case '2': g_currentWaveForm = e_waveSaw; printf("instrument: bl saw\r\n"); return;
+                case '3': g_currentWaveForm = e_waveSquare; printf("instrument: bl square\r\n"); return;
+                case '4': g_currentWaveForm = e_waveTriangle; printf("instrument: bl triangle\r\n"); return;
+                case '5': g_tremolo = (EEffectSpeed)(((int)g_tremolo + 1) % (e_effectFast+1)); printf("tremolo = %i\r\n", g_tremolo); return;
+                case '6': g_vibrato = (EEffectSpeed)(((int)g_vibrato + 1) % (e_effectFast+1)); printf("vibrato = %i\r\n", g_vibrato); return;
             }
         }
 
@@ -242,16 +281,20 @@ namespace Demo7_BLWaveForms {
 
         // get a lock on our notes vector and add the new note
         std::lock_guard<std::mutex> guard(g_notesMutex);
-        g_notes.push_back(SNote(frequency, g_currentWaveForm));
+        g_notes.push_back(SNote(frequency, g_currentWaveForm, g_tremolo, g_vibrato));
     }
 
     //--------------------------------------------------------------------------------------------------
     void OnEnterDemo () {
         g_currentWaveForm = e_waveSine;
+        g_tremolo = e_effectOff;
+        g_vibrato = e_effectOff;
         printf("Letter keys to play notes.\r\nleft shift / control is super low frequency.\r\n");
         printf("1 = Sine\r\n");
         printf("2 = Band Limited Saw\r\n");
         printf("3 = Band Limited Square\r\n");
         printf("4 = Band Limited Triangle\r\n");
+        printf("5 = Cycle Tremolo\r\n");
+        printf("6 = Cycle Vibrato\r\n");
     }
 }

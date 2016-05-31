@@ -31,6 +31,8 @@ Presentation is on 7/1/16
 
 ? should we do a stereo demo? not sure if will work in room. should try
 
+? make a generic synth for people to play? make it be the first demo, even before the bg music? could invite people to play if extra time
+
 Presentation Outline:
 
 --1--
@@ -112,42 +114,42 @@ Presentation Outline:
   * Vibrato: modify frequency on a low frequency sine wave
   * (modular synth = plug anything into anything else, so like, you could plug a saw wave into vibrato etc)
   * demo: some notes with vibrato, some notes with tremolo
+ * DEMO = 8_TremVib
+ * note: The effects have 2 params: frequency and depth. tremolo depth = how long and high it makes it. vibrato depth = how much higher or lower the frequency gets.
+ * note: i have them on a sine wave (LFO - low frequency oscilator), but you could put the effects on other wave forms, even have some other sound controlling the effect!
 
 --11--
- * Amplitude Modulation Synthesis (AM Synth)
-  * Bring tremolo up to audible frequencies!
-  * show: what does this wave form look like?
-  * demo: play some AM synth notes
-
---12--
  * Frequency Modulation Synthesis (FM Synth)
-  * bring vibrato up to audible frequencies!
+  * bringing tremolo up to audble frequencies = AM synth, aka amplitude modulation synth.
+   * Never been able to make it sound interesting, so not so useful IMO.
+  * bring vibrato up to audible frequencies = FM sytnh.
   * show: book about it, talk about complexities
   * demo: play some FM synth notes
+  * great read: http://the-all.org/tx81z/fm_overview.html (get some notes there, like what increasing speed vs depth does)
 
---13--
+--12--
  * Delay (echo)
   * talk about having a buffer of the right number of samples with some feedback volume.  Circular buffer.
   * demo: play some notes that are aligned to timing, and some that aren't.
 
---14--
+--13--
  * Reverb
   * explain multitap.  mention convolution reverb.  Reference blog post on how to do it.
   * demo: play some sweet sweet notes with multitap reverb
   * could play multitap next to convolution reverb to show difference in quality
 
---15--
+--14--
  * Flange
   * explain origins.  explain how to simulate.  talk about sub sample interpolation.  linear, cubic hermite, sync, etc.
   * demo: wave forms with flange.
 
---16--
+--15--
  * Basic Drum
   * explain how to do it.
   * demo: step by step to improve it's sound.
   * mention you could use sound clips
 
---17--
+--16--
  * Automatic volume adjustments
   * briefly explain compressors and limiters
   * useful for keeping things from clipping
@@ -156,30 +158,30 @@ Presentation Outline:
   * mention that we do this in heroes
   * mention battlefield's HDR audio system
 
---18--
+--17--
  * cymbal from static?
   * a 5th common wave form: "noise"
   * show how to use an envelope to make the noise meaningful
   * demo: play some drums and symbols
 
---19--
+--18--
  * Basic LPF and HPF
   * demo: how they sound
   * demo: use them in echo?
   * mention: biquads, IIR/FIR.
   * mention: subtractive synth: use filters to carve the block.  different wave forms have different frequencies at different amplitudes so sound differently when filtered.
 
---20--
+--19--
  * Positional sound
   * delay per ear more important than volume changes
   * demo: some 3d sound? does it make sense to do in a large room?  maybe not...
 
---21--
+--20--
  * real time vs offline
   * how many ms to not feel a delay? was it 7ms?
   * better effects in offline processing, and can even look into future for cooler sounding effects (like a reverse echo)
 
--- 22--
+-- 21--
  * closing slide
   * shadertoy -> lets you do audio
   * my blog -> more audio synth info there now and future content

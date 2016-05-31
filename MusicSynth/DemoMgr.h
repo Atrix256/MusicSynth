@@ -73,7 +73,7 @@ public:
         // also apply clipping.
         bool clip = s_clippingOn;
         static float lastVolumeMultiplier = 1.0;
-        float volumeMultiplier = s_volumeMultiplier;
+        float volumeMultiplier = dBToAmplitude((1.0f - s_volumeMultiplier) * -60.0f);
         for (size_t sample = 0; sample < framesPerBuffer; ++sample, outputBuffer += numChannels) {
             // lerp the volume change across the buffer
             float percent = float(sample) / float(framesPerBuffer);

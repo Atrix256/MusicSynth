@@ -12,5 +12,7 @@ DEMO(4_Mixing)
 DEMO(5_Envelopes)
 DEMO(6_WaveForms)
 DEMO(7_BLWaveForms)
+DEMO(8_TremVib)
+DEMO(9_FMSynth)
 
 #undef DEMO

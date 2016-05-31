@@ -236,3 +236,13 @@ inline float Envelope4Pt (
     float percent = (time - time2) / (time3 - time2);
     return Lerp(volume2, volume3, percent);
 }
+
+inline float AmplitudeTodB(float amplitude)
+{
+  return 20.0f * log10(amplitude);
+}
+ 
+inline float dBToAmplitude(float db)
+{
+  return std::powf(10.0f, db/20.0f);
+}
