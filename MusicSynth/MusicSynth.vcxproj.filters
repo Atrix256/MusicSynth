@@ -51,7 +51,10 @@
     <ClCompile Include="Demo10_Delay.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Demo_11Reverb.cpp">
+    <ClCompile Include="Demo11_Reverb.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Demo12_Flange.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

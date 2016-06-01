@@ -140,11 +140,13 @@ Presentation Outline:
   * demo: play some sweet sweet notes with multitap reverb
   * could play multitap next to convolution reverb to show difference in quality
  ! note: multitap is aproximation of convolution. more taps = closer to convolution
+ * Demo = 11_Reverb
 
 --14--
  * Flange
   * explain origins.  explain how to simulate.  talk about sub sample interpolation.  linear, cubic hermite, sync, etc.
   * demo: wave forms with flange.
+ ! note: the sauce = "reverb + flange"
 
 --15--
  * Basic Drum

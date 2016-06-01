@@ -1,5 +1,5 @@
 //--------------------------------------------------------------------------------------------------
-// Demo11_Reverb.cpp
+// Demo12_Flange.cpp
 //
 // Logic for the demo of the same name
 //
@@ -8,7 +8,7 @@
 #include "DemoMgr.h"
 #include <algorithm>
 
-namespace Demo11_Reverb {
+namespace Demo12_Flange {
 
     enum EWaveForm {
         e_waveSine,
@@ -17,12 +17,31 @@ namespace Demo11_Reverb {
         e_waveTriangle
     };
 
+    enum EEffect {
+        e_none,
+        e_flangeSlow,
+        e_flangeFast,
+        e_flangeAndReverb,
+        
+        e_numEffects
+    };
+
     const char* WaveFormToString (EWaveForm waveForm) {
         switch (waveForm) {
             case e_waveSine: return "Sine";
             case e_waveSaw: return "Bandlimited Saw";
             case e_waveSquare: return "Bandlimited Square";
             case e_waveTriangle: return "Bandlimited Triangle";
+        }
+        return "???";
+    }
+
+    const char* EffectToString (EEffect effect) {
+        switch (effect) {
+            case e_none: return "None";
+            case e_flangeSlow: return "Slow Flange";
+            case e_flangeFast: return "Faster Flange";
+            case e_flangeAndReverb: return "Flange and Reverb";
         }
         return "???";
     }
@@ -47,7 +66,7 @@ namespace Demo11_Reverb {
     std::vector<SNote>  g_notes;
     std::mutex          g_notesMutex;
     EWaveForm           g_currentWaveForm;
-    bool                g_reverbOn;
+    EEffect             g_effect;
 
     //--------------------------------------------------------------------------------------------------
     struct SMultiTapReverbEffect {
@@ -64,18 +83,19 @@ namespace Demo11_Reverb {
 
         void SetEffectParams (float sampleRate, size_t numChannels) {
 
-            m_bufferSize = size_t(0.662f * sampleRate) * numChannels;
+            m_numChannels = numChannels;
+            m_bufferSize = size_t(0.662f * sampleRate) * m_numChannels;
             
             delete[] m_buffer;
             m_buffer = new float[m_bufferSize];
 
-            m_taps[0] = { size_t(0.079f * sampleRate), 0.0562f };
-            m_taps[1] = { size_t(0.130f * sampleRate), 0.0707f };
-            m_taps[2] = { size_t(0.230f * sampleRate), 0.1778f };
-            m_taps[3] = { size_t(0.340f * sampleRate), 0.0707f };
-            m_taps[4] = { size_t(0.470f * sampleRate), 0.1412f };
-            m_taps[5] = { size_t(0.532f * sampleRate), 0.0891f };
-            m_taps[6] = { size_t(0.662f * sampleRate), 0.2238f };
+            m_taps[0] = { size_t(0.079f * sampleRate * m_numChannels), 0.0562f };
+            m_taps[1] = { size_t(0.130f * sampleRate * m_numChannels), 0.0707f };
+            m_taps[2] = { size_t(0.230f * sampleRate * m_numChannels), 0.1778f };
+            m_taps[3] = { size_t(0.340f * sampleRate * m_numChannels), 0.0707f };
+            m_taps[4] = { size_t(0.470f * sampleRate * m_numChannels), 0.1412f };
+            m_taps[5] = { size_t(0.532f * sampleRate * m_numChannels), 0.0891f };
+            m_taps[6] = { size_t(0.662f * sampleRate * m_numChannels), 0.2238f };
 
             ClearBuffer();
         }
@@ -92,7 +112,7 @@ namespace Demo11_Reverb {
             // gather all the taps
             float ret = 0.0f;
             for (int i = 0; i < 7; ++i) {
-                size_t sampleLoc = (m_sampleIndex + m_taps[i].m_sampleOffset - m_bufferSize) % m_bufferSize;
+                size_t sampleLoc = (m_sampleIndex + m_taps[i].m_sampleOffset) % m_bufferSize;
                 ret += m_buffer[sampleLoc] * m_taps[i].m_volume;
             }
 
@@ -108,9 +128,79 @@ namespace Demo11_Reverb {
         }
 
         float*      m_buffer;
+        size_t      m_numChannels;
         size_t      m_bufferSize;
         size_t      m_sampleIndex;
         STap        m_taps[7];
+    };
+
+    //--------------------------------------------------------------------------------------------------
+    struct SFlangeEffect {
+
+        struct STap {
+            size_t  m_sampleOffset;
+            float   m_volume;
+        };
+
+        SFlangeEffect()
+            : m_buffer(nullptr)
+            , m_bufferSize(0)
+            , m_sampleIndex(0)
+            , m_phase(0.0f)
+            , m_phaseAdvance(0.0f) {}
+
+        void SetEffectParams (float sampleRate, size_t numChannels, float frequency, float amplitudeSeconds) {
+
+            m_phase = 0.0f;
+            m_phaseAdvance = frequency / sampleRate;
+
+            m_numChannels = numChannels;
+            m_bufferSize = size_t(amplitudeSeconds * sampleRate) * m_numChannels;
+            
+            delete[] m_buffer;
+            m_buffer = new float[m_bufferSize];
+
+            ClearBuffer();
+        }
+
+        void ClearBuffer (void) {
+            memset(m_buffer, 0, sizeof(float)*m_bufferSize);
+            m_sampleIndex = 0;
+            m_phase = 0.0f;
+        }
+
+        float AddSample (float sample) {
+
+            // get the tap, linearly interpolating between samples as appropriate
+            float tapOffset = (SineWave(m_phase) * 0.5f + 0.5f) * float((m_bufferSize / m_numChannels));
+            float percent = std::fmodf(tapOffset, 1.0f);
+            float tap1 = m_buffer[(m_sampleIndex + size_t(tapOffset*m_numChannels)) % m_bufferSize];
+            float tap2 = m_buffer[(m_sampleIndex + size_t((tapOffset+1)*m_numChannels)) % m_bufferSize];
+            float tap = Lerp(tap1, tap2, percent);
+
+            // advance the phase
+            m_phase = std::fmodf(m_phase + m_phaseAdvance, 1.0f);
+
+            // put the sample into the buffer
+            m_buffer[m_sampleIndex] = sample;
+
+            // move the index to the next location
+            m_sampleIndex = (m_sampleIndex + 1) % m_bufferSize;
+
+            // return the sample mixed with the info from the buffer
+            return sample + tap;
+        }
+
+        ~SFlangeEffect() {
+            delete[] m_buffer;
+        }
+
+        float*      m_buffer;
+        size_t      m_numChannels;
+        size_t      m_bufferSize;
+        size_t      m_sampleIndex;
+        float       m_phase;
+        float       m_phaseAdvance;
     };
 
     //--------------------------------------------------------------------------------------------------
@@ -188,19 +278,27 @@ namespace Demo11_Reverb {
     void GenerateAudioSamples (float *outputBuffer, size_t framesPerBuffer, size_t numChannels, float sampleRate) {
 
         // initialize our effects
-        static SMultiTapReverbEffect multiTapReverbEffect;
+        static SFlangeEffect flangeEffect;
+        static SMultiTapReverbEffect reverbEffect;
         static bool effectsInitialized = false;
         if (!effectsInitialized) {
-            multiTapReverbEffect.SetEffectParams(sampleRate, numChannels);
+            reverbEffect.SetEffectParams(sampleRate, numChannels);
             effectsInitialized = true;
         }
 
-        // clear our effect buffers if reverb has changed
-        static bool lastReverbOn = false;
-        bool currentReverbOn = g_reverbOn;
-        if (currentReverbOn != lastReverbOn) {
-            lastReverbOn = currentReverbOn;
-            multiTapReverbEffect.ClearBuffer();
+        // update our effect parameters if parameters have changed
+        static EEffect lastEffect = e_none;
+        EEffect currentEffect = g_effect;
+        if (currentEffect != lastEffect) {
+            lastEffect = currentEffect;
+
+            flangeEffect.ClearBuffer();
+            reverbEffect.ClearBuffer();
+
+            switch (currentEffect) {
+                case e_flangeSlow: flangeEffect.SetEffectParams(sampleRate, numChannels, 0.01f, 0.01f); break;
+                case e_flangeFast: flangeEffect.SetEffectParams(sampleRate, numChannels, 0.25f, 0.05f); break;
+            }
         }
 
         // get a lock on our notes vector
@@ -221,10 +319,15 @@ namespace Demo11_Reverb {
 
             // put the value through the effect, for all channels
             for (size_t channel = 0; channel < numChannels; ++channel) {
-                if (currentReverbOn)
-                    outputBuffer[channel] = multiTapReverbEffect.AddSample(value);
-                else
+                if (currentEffect != e_none) {
+                    outputBuffer[channel] = flangeEffect.AddSample(value);
+
+                    if (currentEffect == e_flangeAndReverb)
+                        outputBuffer[channel] = reverbEffect.AddSample(outputBuffer[channel]);
+                }
+                else {
                     outputBuffer[channel] = value;
+                }
             }
         }
 
@@ -261,7 +364,7 @@ namespace Demo11_Reverb {
 
     //--------------------------------------------------------------------------------------------------
     void ReportParams () {
-        printf("Instrument: %s  Reverb: %s\r\n", WaveFormToString(g_currentWaveForm), g_reverbOn ? "On" : "Off");
+        printf("Instrument: %s  Effect: %s\r\n", WaveFormToString(g_currentWaveForm), EffectToString(g_effect));
     }
 
     //--------------------------------------------------------------------------------------------------
@@ -275,7 +378,7 @@ namespace Demo11_Reverb {
                 case '2': g_currentWaveForm = e_waveSaw; ReportParams(); return;
                 case '3': g_currentWaveForm = e_waveSquare; ReportParams(); return;
                 case '4': g_currentWaveForm = e_waveTriangle; ReportParams(); return;
-                case '5': g_reverbOn = !g_reverbOn; ReportParams(); return;
+                case '5': g_effect = EEffect(int(g_effect+1)%e_numEffects); ReportParams(); return;
             }
         }
 
@@ -347,19 +450,21 @@ namespace Demo11_Reverb {
     //--------------------------------------------------------------------------------------------------
     void OnEnterDemo () {
         g_currentWaveForm = e_waveSine;
-        g_reverbOn = false;
+        g_effect = e_none;
         printf("Letter keys to play notes.\r\nleft shift / control is super low frequency.\r\n");
         printf("1 = Sine\r\n");
         printf("2 = Band Limited Saw\r\n");
         printf("3 = Band Limited Square\r\n");
         printf("4 = Band Limited Triangle\r\n");
-        printf("5 = Toggle Multitap Reverb\r\n");
+        printf("5 = Cycle Effect\r\n");
     }
 }
 
 /*
 
-// TODO: need to handle the numChannels thing correctly. don't want to get stuff from the wrong channel in there!
-// TODO: delay probably has that problem too.  Need to fix! Store off numchannels maybe and divide / multiply it out as needed?
+TODO:
+
+* something doesn't sound quite right with this flange, look into it more deeply
+* mention "the sauce" in the presentation (flange + reverb)
 
 */
