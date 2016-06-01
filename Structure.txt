@@ -139,6 +139,7 @@ Presentation Outline:
   * explain multitap.  mention convolution reverb.  Reference blog post on how to do it.
   * demo: play some sweet sweet notes with multitap reverb
   * could play multitap next to convolution reverb to show difference in quality
+ ! note: multitap is aproximation of convolution. more taps = closer to convolution
 
 --14--
  * Flange

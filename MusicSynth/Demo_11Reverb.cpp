@@ -17,27 +17,12 @@ namespace Demo11_Reverb {
         e_waveTriangle
     };
 
-    enum EReverb {
-        e_reverbNone,
-        e_reverbMultitap,
-        e_reverbConvolution,
-    };
-
     const char* WaveFormToString (EWaveForm waveForm) {
         switch (waveForm) {
             case e_waveSine: return "Sine";
             case e_waveSaw: return "Bandlimited Saw";
             case e_waveSquare: return "Bandlimited Square";
             case e_waveTriangle: return "Bandlimited Triangle";
-        }
-        return "???";
-    }
-
-    const char* ReverbToString (EReverb reverb) {
-        switch (reverb) {
-            case e_reverbNone: return "None";
-            case e_reverbMultitap: return "Multitap";
-            case e_reverbConvolution: return "Convolution";
         }
         return "???";
     }
@@ -62,67 +47,70 @@ namespace Demo11_Reverb {
     std::vector<SNote>  g_notes;
     std::mutex          g_notesMutex;
     EWaveForm           g_currentWaveForm;
-    EReverb             g_currentReverb;
+    bool                g_reverbOn;
 
     //--------------------------------------------------------------------------------------------------
     struct SMultiTapReverbEffect {
 
+        struct STap {
+            size_t  m_sampleOffset;
+            float   m_volume;
+        };
+
         SMultiTapReverbEffect()
             : m_buffer(nullptr)
             , m_bufferSize(0)
-            , m_feedback(1.0f)
             , m_sampleIndex(0) {}
 
-        void SetEffectParams (float delayTime, float sampleRate, size_t numChannels, float feedback) {
+        void SetEffectParams (float sampleRate, size_t numChannels) {
 
-            size_t numSamples = size_t(delayTime * sampleRate) * numChannels;
-
+            m_bufferSize = size_t(0.662f * sampleRate) * numChannels;
+            
             delete[] m_buffer;
+            m_buffer = new float[m_bufferSize];
 
-            if (numSamples == 0) {
-                m_buffer = nullptr;
-                return;
-            }
-
-            m_buffer = new float[numSamples];
-            m_bufferSize = numSamples;
-            m_feedback = feedback;
+            m_taps[0] = { size_t(0.079f * sampleRate), 0.0562f };
+            m_taps[1] = { size_t(0.130f * sampleRate), 0.0707f };
+            m_taps[2] = { size_t(0.230f * sampleRate), 0.1778f };
+            m_taps[3] = { size_t(0.340f * sampleRate), 0.0707f };
+            m_taps[4] = { size_t(0.470f * sampleRate), 0.1412f };
+            m_taps[5] = { size_t(0.532f * sampleRate), 0.0891f };
+            m_taps[6] = { size_t(0.662f * sampleRate), 0.2238f };
 
             ClearBuffer();
         }
 
         void ClearBuffer (void) {
-            if (m_buffer)
-                memset(m_buffer, 0, sizeof(float)*m_bufferSize);
+            memset(m_buffer, 0, sizeof(float)*m_bufferSize);
             m_sampleIndex = 0;
         }
 
         float AddSample (float sample) {
-            if (!m_buffer)
-                return sample;
+            // put the sample into the buffer
+            m_buffer[m_sampleIndex] = sample;
 
-            // apply feedback in the delay buffer, for whatever is currently in there.
-            // also mix in our new sample.
-            m_buffer[m_sampleIndex] = m_buffer[m_sampleIndex] * m_feedback + sample;
-
-            // cache off our value to return
-            float ret = m_buffer[m_sampleIndex];
+            // gather all the taps
+            float ret = 0.0f;
+            for (int i = 0; i < 7; ++i) {
+                size_t sampleLoc = (m_sampleIndex + m_taps[i].m_sampleOffset - m_bufferSize) % m_bufferSize;
+                ret += m_buffer[sampleLoc] * m_taps[i].m_volume;
+            }
 
             // move the index to the next location
             m_sampleIndex = (m_sampleIndex + 1) % m_bufferSize;
 
-            // return the value with echo
-            return ret;
+            // return the sum of the taps
+            return ret + sample;
         }
 
         ~SMultiTapReverbEffect() {
             delete[] m_buffer;
         }
 
-        float*  m_buffer;
-        size_t  m_bufferSize;
-        float   m_feedback;
-        size_t  m_sampleIndex;
+        float*      m_buffer;
+        size_t      m_bufferSize;
+        size_t      m_sampleIndex;
+        STap        m_taps[7];
     };
 
     //--------------------------------------------------------------------------------------------------
@@ -199,33 +187,20 @@ namespace Demo11_Reverb {
     //--------------------------------------------------------------------------------------------------
     void GenerateAudioSamples (float *outputBuffer, size_t framesPerBuffer, size_t numChannels, float sampleRate) {
 
-        // re-create our effect if the settings have changed
+        // initialize our effects
         static SMultiTapReverbEffect multiTapReverbEffect;
-        static EReverb lastReverb = e_reverbNone;
-        EReverb currentReverb = g_currentReverb;
-        if (currentReverb != lastReverb) {
-            lastReverb = currentReverb;
+        static bool effectsInitialized = false;
+        if (!effectsInitialized) {
+            multiTapReverbEffect.SetEffectParams(sampleRate, numChannels);
+            effectsInitialized = true;
+        }
+
+        // clear our effect buffers if reverb has changed
+        static bool lastReverbOn = false;
+        bool currentReverbOn = g_reverbOn;
+        if (currentReverbOn != lastReverbOn) {
+            lastReverbOn = currentReverbOn;
             multiTapReverbEffect.ClearBuffer();
-            /*
-            switch (currentDelay) {
-                case e_delayNone: {
-                    delayEffect.SetEffectParams(0.0f, sampleRate, numChannels, 0.0f);
-                    break;
-                }
-                case e_delay1: {
-                    delayEffect.SetEffectParams(0.25f, sampleRate, numChannels, 0.35f);
-                    break;
-                }
-                case e_delay2: {
-                    delayEffect.SetEffectParams(0.66f, sampleRate, numChannels, 0.4f);
-                    break;
-                }
-                case e_delay3: {
-                    delayEffect.SetEffectParams(1.0f, sampleRate, numChannels, 0.33f);
-                    break;
-                }
-            }
-            */
         }
 
         // get a lock on our notes vector
@@ -245,8 +220,12 @@ namespace Demo11_Reverb {
             );
 
             // put the value through the effect, for all channels
-            for (size_t channel = 0; channel < numChannels; ++channel)
-                outputBuffer[channel] = multiTapReverbEffect.AddSample(value);
+            for (size_t channel = 0; channel < numChannels; ++channel) {
+                if (currentReverbOn)
+                    outputBuffer[channel] = multiTapReverbEffect.AddSample(value);
+                else
+                    outputBuffer[channel] = value;
+            }
         }
 
         // remove notes that have died
@@ -282,7 +261,7 @@ namespace Demo11_Reverb {
 
     //--------------------------------------------------------------------------------------------------
     void ReportParams () {
-        printf("Instrument: %s  Reverb: %s\r\n", WaveFormToString(g_currentWaveForm), ReverbToString(g_currentReverb));
+        printf("Instrument: %s  Reverb: %s\r\n", WaveFormToString(g_currentWaveForm), g_reverbOn ? "On" : "Off");
     }
 
     //--------------------------------------------------------------------------------------------------
@@ -296,9 +275,7 @@ namespace Demo11_Reverb {
                 case '2': g_currentWaveForm = e_waveSaw; ReportParams(); return;
                 case '3': g_currentWaveForm = e_waveSquare; ReportParams(); return;
                 case '4': g_currentWaveForm = e_waveTriangle; ReportParams(); return;
-                case '5': g_currentReverb = e_reverbNone; ReportParams(); return;
-                case '6': g_currentReverb = e_reverbMultitap; ReportParams(); return;
-                case '7': g_currentReverb = e_reverbConvolution; ReportParams(); return;
+                case '5': g_reverbOn = !g_reverbOn; ReportParams(); return;
             }
         }
 
@@ -370,22 +347,19 @@ namespace Demo11_Reverb {
     //--------------------------------------------------------------------------------------------------
     void OnEnterDemo () {
         g_currentWaveForm = e_waveSine;
-        g_currentReverb = e_reverbNone;
+        g_reverbOn = false;
         printf("Letter keys to play notes.\r\nleft shift / control is super low frequency.\r\n");
         printf("1 = Sine\r\n");
         printf("2 = Band Limited Saw\r\n");
         printf("3 = Band Limited Square\r\n");
         printf("4 = Band Limited Triangle\r\n");
-        printf("5 = Reverb Off\r\n");
-        printf("6 = Multitap Reverb\r\n");
-        printf("7 = Convolution Reverb\r\n");
+        printf("5 = Toggle Multitap Reverb\r\n");
     }
 }
 
 /*
 
-TODO:
-* do multitap and convolution side by side to be able to compare
- ? how do we do real time convolution reverb though?
+// TODO: need to handle the numChannels thing correctly. don't want to get stuff from the wrong channel in there!
+// TODO: delay probably has that problem too.  Need to fix! Store off numchannels maybe and divide / multiply it out as needed?
 
 */
