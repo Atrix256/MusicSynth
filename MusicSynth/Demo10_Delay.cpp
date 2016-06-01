@@ -6,6 +6,7 @@
 //--------------------------------------------------------------------------------------------------
 
 #include "DemoMgr.h"
+#include "AudioEffects.h"
 #include <algorithm>
 
 namespace Demo10_Delay {
@@ -65,64 +66,6 @@ namespace Demo10_Delay {
     std::mutex          g_notesMutex;
     EWaveForm           g_currentWaveForm;
     EDelay              g_currentDelay;
-
-    //--------------------------------------------------------------------------------------------------
-    // not a true delay effect, in that it returns the passed in sample mixed with what's in the delay
-    // buffer, but this ought to get the idea across.
-    struct SDelayEffect {
-
-        SDelayEffect ()
-            : m_delayBuffer(nullptr)
-            , m_delayBufferSize(0)
-            , m_feedback(1.0f)
-            , m_sampleIndex(0) {}
-
-        void SetEffectParams (float delayTime, float sampleRate, size_t numChannels, float feedback) {
-
-            size_t numSamples = size_t(delayTime * sampleRate) * numChannels;
-
-            delete[] m_delayBuffer;
-
-            if (numSamples == 0) {
-                m_delayBuffer = nullptr;
-                return;
-            }
-
-            m_delayBuffer = new float[numSamples];
-            memset(m_delayBuffer, 0, sizeof(float)*numSamples);
-
-            m_delayBufferSize = numSamples;
-            m_feedback = feedback;
-            m_sampleIndex = 0;
-        }
-
-        float AddSample (float sample) {
-            if (!m_delayBuffer)
-                return sample;
-
-            // apply feedback in the delay buffer, for whatever is currently in there.
-            // also mix in our new sample.
-            m_delayBuffer[m_sampleIndex] = m_delayBuffer[m_sampleIndex] * m_feedback + sample;
-
-            // cache off our value to return
-            float ret = m_delayBuffer[m_sampleIndex];
-
-            // move the index to the next location
-            m_sampleIndex = (m_sampleIndex + 1) % m_delayBufferSize;
-
-            // return the value with echo
-            return ret;
-        }
-
-        ~SDelayEffect() {
-            delete[] m_delayBuffer;
-        }
-
-        float*  m_delayBuffer;
-        size_t  m_delayBufferSize;
-        float   m_feedback;
-        size_t  m_sampleIndex;
-    };
 
     //--------------------------------------------------------------------------------------------------
     inline float GenerateEnvelope (SNote& note, float ageInSeconds, float sampleRate) {
@@ -240,9 +183,12 @@ namespace Demo10_Delay {
                 }
             );
 
-            // put the value through the delay buffer, for all channels
+            // apply effects
+            value = delayEffect.AddSample(value);
+
+            // copy the value to all audio channels
             for (size_t channel = 0; channel < numChannels; ++channel)
-                outputBuffer[channel] = delayEffect.AddSample(value);
+                outputBuffer[channel] = value;
         }
 
         // remove notes that have died

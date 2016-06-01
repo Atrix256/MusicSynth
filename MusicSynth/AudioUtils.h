@@ -7,6 +7,7 @@
 #pragma once
 
 #include <cmath>
+#include <stdlib.h>
 
 static const float c_pi = 3.14159265359f;
 
@@ -85,6 +86,16 @@ inline float TriangleWaveBandLimited (float phase, int nNumHarmonics) {
 
     // return the value, with adjusted volume
     return fRet * 8.0f / (c_pi * c_pi);
+}
+
+//--------------------------------------------------------------------------------------------------
+inline float Noise ()
+{
+    // get a random float [0, 1]
+    float value = ((float)rand()) / ((float)RAND_MAX);
+
+    // return that number mapped to [-1, 1]
+    return  (value * 2.0f) - 1.0f;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -235,6 +246,59 @@ inline float Envelope4Pt (
     // else between time2 and time3, lerp between volume2 and volume3
     float percent = (time - time2) / (time3 - time2);
     return Lerp(volume2, volume3, percent);
+}
+
+//--------------------------------------------------------------------------------------------------
+inline float Envelope5Pt (
+    float time,
+    float time0, float volume0,
+    float time1, float volume1,
+    float time2, float volume2,
+    float time3, float volume3,
+    float time4, float volume4
+) {
+    /*
+    This function does a 5 point envelope.
+
+      v1 v2 v3
+       *--*--*
+      /       \
+     /         \
+  v0*           *v3
+    +--+--+--+--+
+    t0 t1 t2 t3 t4
+
+    */
+
+    // if before envelope starts, return volume0
+    if (time < time0)
+        return volume0;
+    
+    // if after envelope ends, return volume3
+    if (time > time4)
+        return volume4;
+
+    // if between time0 and time1, lerp between volume0 and volume1
+    if (time < time1) {
+        float percent = (time - time0) / (time1 - time0);
+        return Lerp(volume0, volume1, percent);
+    }
+
+    // else if between time1 and time2, lerp between volume1 and volume2
+    if (time < time2) {
+        float percent = (time - time1) / (time2 - time1);
+        return Lerp(volume1, volume2, percent);
+    }
+
+    // else if between time2 and time3, lerp between volume2 and volume3
+    if (time < time3) {
+        float percent = (time - time2) / (time3 - time2);
+        return Lerp(volume2, volume3, percent);
+    }
+    
+    // else between time3 and time4, lerp between volume3 and volume4
+    float percent = (time - time3) / (time4 - time3);
+    return Lerp(volume3, volume4, percent);
 }
 
 //--------------------------------------------------------------------------------------------------

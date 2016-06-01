@@ -70,6 +70,7 @@
   <ItemGroup>
     <ClCompile Include="Demo10_Delay.cpp" />
     <ClCompile Include="Demo12_Flange.cpp" />
+    <ClCompile Include="Demo13_Drum.cpp" />
     <ClCompile Include="Demo6_WaveForms.cpp" />
     <ClCompile Include="Demo2_Popping.cpp" />
     <ClCompile Include="Demo3_Clipping.cpp" />
@@ -84,6 +85,7 @@
     <ClCompile Include="Main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AudioEffects.h" />
     <ClInclude Include="AudioUtils.h" />
     <ClInclude Include="DemoList.h" />
     <ClInclude Include="DemoMgr.h" />

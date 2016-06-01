@@ -6,6 +6,7 @@
 //--------------------------------------------------------------------------------------------------
 
 #include "DemoMgr.h"
+#include "AudioEffects.h"
 #include <algorithm>
 
 namespace Demo12_Flange {
@@ -21,7 +22,7 @@ namespace Demo12_Flange {
         e_none,
         e_flangeSlow,
         e_flangeFast,
-        e_flangeAndReverb,
+        e_flangeSlowAndReverb,
         
         e_numEffects
     };
@@ -41,7 +42,7 @@ namespace Demo12_Flange {
             case e_none: return "None";
             case e_flangeSlow: return "Slow Flange";
             case e_flangeFast: return "Faster Flange";
-            case e_flangeAndReverb: return "Flange and Reverb";
+            case e_flangeSlowAndReverb: return "Slow Flange and Reverb";
         }
         return "???";
     }
@@ -67,141 +68,6 @@ namespace Demo12_Flange {
     std::mutex          g_notesMutex;
     EWaveForm           g_currentWaveForm;
     EEffect             g_effect;
-
-    //--------------------------------------------------------------------------------------------------
-    struct SMultiTapReverbEffect {
-
-        struct STap {
-            size_t  m_sampleOffset;
-            float   m_volume;
-        };
-
-        SMultiTapReverbEffect()
-            : m_buffer(nullptr)
-            , m_bufferSize(0)
-            , m_sampleIndex(0) {}
-
-        void SetEffectParams (float sampleRate, size_t numChannels) {
-
-            m_numChannels = numChannels;
-            m_bufferSize = size_t(0.662f * sampleRate) * m_numChannels;
-            
-            delete[] m_buffer;
-            m_buffer = new float[m_bufferSize];
-
-            m_taps[0] = { size_t(0.079f * sampleRate * m_numChannels), 0.0562f };
-            m_taps[1] = { size_t(0.130f * sampleRate * m_numChannels), 0.0707f };
-            m_taps[2] = { size_t(0.230f * sampleRate * m_numChannels), 0.1778f };
-            m_taps[3] = { size_t(0.340f * sampleRate * m_numChannels), 0.0707f };
-            m_taps[4] = { size_t(0.470f * sampleRate * m_numChannels), 0.1412f };
-            m_taps[5] = { size_t(0.532f * sampleRate * m_numChannels), 0.0891f };
-            m_taps[6] = { size_t(0.662f * sampleRate * m_numChannels), 0.2238f };
-
-            ClearBuffer();
-        }
-
-        void ClearBuffer (void) {
-            memset(m_buffer, 0, sizeof(float)*m_bufferSize);
-            m_sampleIndex = 0;
-        }
-
-        float AddSample (float sample) {
-            // put the sample into the buffer
-            m_buffer[m_sampleIndex] = sample;
-
-            // gather all the taps
-            float ret = 0.0f;
-            for (int i = 0; i < 7; ++i) {
-                size_t sampleLoc = (m_sampleIndex + m_taps[i].m_sampleOffset) % m_bufferSize;
-                ret += m_buffer[sampleLoc] * m_taps[i].m_volume;
-            }
-
-            // move the index to the next location
-            m_sampleIndex = (m_sampleIndex + 1) % m_bufferSize;
-
-            // return the sum of the taps
-            return ret + sample;
-        }
-
-        ~SMultiTapReverbEffect() {
-            delete[] m_buffer;
-        }
-
-        float*      m_buffer;
-        size_t      m_numChannels;
-        size_t      m_bufferSize;
-        size_t      m_sampleIndex;
-        STap        m_taps[7];
-    };
-
-    //--------------------------------------------------------------------------------------------------
-    struct SFlangeEffect {
-
-        struct STap {
-            size_t  m_sampleOffset;
-            float   m_volume;
-        };
-
-        SFlangeEffect()
-            : m_buffer(nullptr)
-            , m_bufferSize(0)
-            , m_sampleIndex(0)
-            , m_phase(0.0f)
-            , m_phaseAdvance(0.0f) {}
-
-        void SetEffectParams (float sampleRate, size_t numChannels, float frequency, float amplitudeSeconds) {
-
-            m_phase = 0.0f;
-            m_phaseAdvance = frequency / sampleRate;
-
-            m_numChannels = numChannels;
-            m_bufferSize = size_t(amplitudeSeconds * sampleRate) * m_numChannels;
-            
-            delete[] m_buffer;
-            m_buffer = new float[m_bufferSize];
-
-            ClearBuffer();
-        }
-
-        void ClearBuffer (void) {
-            memset(m_buffer, 0, sizeof(float)*m_bufferSize);
-            m_sampleIndex = 0;
-            m_phase = 0.0f;
-        }
-
-        float AddSample (float sample) {
-
-            // get the tap, linearly interpolating between samples as appropriate
-            float tapOffset = (SineWave(m_phase) * 0.5f + 0.5f) * float((m_bufferSize / m_numChannels));
-            float percent = std::fmodf(tapOffset, 1.0f);
-            float tap1 = m_buffer[(m_sampleIndex + size_t(tapOffset*m_numChannels)) % m_bufferSize];
-            float tap2 = m_buffer[(m_sampleIndex + size_t((tapOffset+1)*m_numChannels)) % m_bufferSize];
-            float tap = Lerp(tap1, tap2, percent);
-
-            // advance the phase
-            m_phase = std::fmodf(m_phase + m_phaseAdvance, 1.0f);
-
-            // put the sample into the buffer
-            m_buffer[m_sampleIndex] = sample;
-
-            // move the index to the next location
-            m_sampleIndex = (m_sampleIndex + 1) % m_bufferSize;
-
-            // return the sample mixed with the info from the buffer
-            return sample + tap;
-        }
-
-        ~SFlangeEffect() {
-            delete[] m_buffer;
-        }
-
-        float*      m_buffer;
-        size_t      m_numChannels;
-        size_t      m_bufferSize;
-        size_t      m_sampleIndex;
-        float       m_phase;
-        float       m_phaseAdvance;
-    };
 
     //--------------------------------------------------------------------------------------------------
     inline float GenerateEnvelope (SNote& note, float ageInSeconds, float sampleRate) {
@@ -296,8 +162,9 @@ namespace Demo12_Flange {
             reverbEffect.ClearBuffer();
 
             switch (currentEffect) {
-                case e_flangeSlow: flangeEffect.SetEffectParams(sampleRate, numChannels, 0.01f, 0.01f); break;
-                case e_flangeFast: flangeEffect.SetEffectParams(sampleRate, numChannels, 0.25f, 0.05f); break;
+                case e_flangeSlowAndReverb:
+                case e_flangeSlow: flangeEffect.SetEffectParams(sampleRate, numChannels, 0.25f, 0.02f); break;
+                case e_flangeFast: flangeEffect.SetEffectParams(sampleRate, numChannels, 1.0f, 0.05f); break;
             }
         }
 
@@ -317,18 +184,20 @@ namespace Demo12_Flange {
                 }
             );
 
-            // put the value through the effect, for all channels
-            for (size_t channel = 0; channel < numChannels; ++channel) {
-                if (currentEffect != e_none) {
-                    outputBuffer[channel] = flangeEffect.AddSample(value);
-
-                    if (currentEffect == e_flangeAndReverb)
-                        outputBuffer[channel] = reverbEffect.AddSample(outputBuffer[channel]);
-                }
-                else {
-                    outputBuffer[channel] = value;
-                }
+            // apply effects if appropriate
+            if (currentEffect != e_none) {
+                value = flangeEffect.AddSample(value);
+                if (currentEffect == e_flangeSlowAndReverb)
+                    value = reverbEffect.AddSample(value);
             }
+
+            // copy the value to all audio channels
+            for (size_t channel = 0; channel < numChannels; ++channel)
+                outputBuffer[channel] = value;
+
+            // advance the phase of the flange effect if flange is on
+            if (currentEffect != e_none)
+                flangeEffect.AdvancePhase();
         }
 
         // remove notes that have died
@@ -459,12 +328,3 @@ namespace Demo12_Flange {
         printf("5 = Cycle Effect\r\n");
     }
 }
-
-/*
-
-TODO:
-
-* something doesn't sound quite right with this flange, look into it more deeply
-* mention "the sauce" in the presentation (flange + reverb)
-
-*/

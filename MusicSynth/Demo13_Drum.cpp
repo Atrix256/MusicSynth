@@ -1,52 +1,59 @@
 //--------------------------------------------------------------------------------------------------
-// Demo5_Envelopes.cpp
+// Demo13_Drum.cpp
 //
 // Logic for the demo of the same name
 //
 //--------------------------------------------------------------------------------------------------
 
 #include "DemoMgr.h"
+#include "AudioEffects.h"
 #include <algorithm>
 
-namespace Demo5_Envelopes {
+namespace Demo13_Drum {
 
-    enum EEnvelope {
-        e_envelopeMinimal,
-        e_envelopeBell,
-        e_envelopeReverseBell,
-        e_envelopeFlute,
+    enum EMode {
+        e_modeSine,
+        e_modeSineEnvelope,
+        e_modeSineEnvelopeDecay,
+        e_modeSineEnvelopeDecayPop,
+        e_modeSineEnvelopeDecayPopReverb,
+
+        e_modeCount,
+
+        e_modeCymbal
     };
 
-    const char* EnvelopeToString (EEnvelope envelope) {
-        switch (envelope) {
-            case e_envelopeMinimal: return "Sine";
-            case e_envelopeBell: return "Bell";
-            case e_envelopeReverseBell: return "Reverse Bell";
-            case e_envelopeFlute: return "Flute";
+    const char* ModeToString (EMode mode) {
+        switch (mode) {
+            case e_modeSine: return "Wave";
+            case e_modeSineEnvelope: return "Wave + Envelope";
+            case e_modeSineEnvelopeDecay: return "Wave + Envelope + Frequency Decay";
+            case e_modeSineEnvelopeDecayPop: return "Wave + Envelope + Frequency Decay + Pop";
+            case e_modeSineEnvelopeDecayPopReverb: return "Wave + Envelope + Frequency Decay + Pop + Reverb";
         }
         return "???";
     }
 
     struct SNote {
-        SNote(float frequency, EEnvelope envelope)
+        SNote(float frequency, EMode mode)
             : m_frequency(frequency)
-            , m_envelope(envelope)
+            , m_mode(mode)
             , m_age(0)
             , m_dead(false)
-            , m_wantsKeyRelease(false)
-            , m_releaseAge(0) {}
+            , m_releaseAge(0)
+            , m_phase(0.0f) {}
 
         float       m_frequency;
-        EEnvelope   m_envelope;
+        EMode       m_mode;
         size_t      m_age;
         bool        m_dead;
-        bool        m_wantsKeyRelease;
         size_t      m_releaseAge;
+        float       m_phase;
     };
 
     std::vector<SNote>  g_notes;
     std::mutex          g_notesMutex;
-    EEnvelope           g_currentEnvelope;
+    EMode               g_currentMode;
 
     //--------------------------------------------------------------------------------------------------
     inline float GenerateEnvelope_Minimal (SNote& note, float ageInSeconds) {
@@ -77,143 +84,105 @@ namespace Demo5_Envelopes {
     }
 
     //--------------------------------------------------------------------------------------------------
-    inline float GenerateEnvelope_Bell (SNote& note, float ageInSeconds) {
-        // note lifetime
-        static const float c_noteLifeTime = 1.00f;
-
-        // use an envelope that sounds "bell like"
-        float envelope = Envelope3Pt(
+    inline float GenerateEnvelope_Drum (SNote& note, float ageInSeconds, bool pop) {
+        // use an envelope that sounds "drum like"
+        float envelope = Envelope4Pt(
             ageInSeconds,
-            0.0f , 0.0f,
-            0.003f, 1.0f,
-            c_noteLifeTime, 0.0f
+            0.000f, pop ? 1.0f : 0.0f,  // pop by starting at full volume, if we should
+            0.010f, 1.0f,            //  10ms: attack (silence -> full volume)
+            0.020f, 1.0f,            //  10ms: hold (full volume)
+            0.195f, 0.0f             // 175ms: decay (full volume -> silence)
         );
 
         // kill notes that are too old
-        if (ageInSeconds > c_noteLifeTime)
+        if (ageInSeconds > 0.195)
             note.m_dead = true;
 
         return envelope;
     }
 
     //--------------------------------------------------------------------------------------------------
-    inline float GenerateEnvelope_ReverseBell (SNote& note, float ageInSeconds) {
-        // note lifetime
-        static const float c_noteLifeTime = 1.00f;
-
-        // use an envelope that sounds "bell like" but reversed in time
-        float envelope = Envelope3Pt(
+    inline float GenerateEnvelope_Cymbal (SNote& note, float ageInSeconds) {
+        // use an envelope that sounds "drum like"
+        float envelope = Envelope5Pt(
             ageInSeconds,
-            0.0f, 0.0f,
-            c_noteLifeTime-0.003f, 1.0f,
-            c_noteLifeTime, 0.0f
+            0.000f, 0.0f,
+            0.010f, 1.0f,            //  10ms: attack (silence -> full volume)
+            0.020f, 1.0f,            //  10ms: hold (full volume)
+            0.040f, 0.2f,            //  20ms: decay1 (full volume -> less volume)
+            0.215f, 0.0f             // 175ms: decay (less volume -> silence)
         );
 
         // kill notes that are too old
-        if (ageInSeconds > c_noteLifeTime)
+        if (ageInSeconds > 0.215)
             note.m_dead = true;
 
         return envelope;
     }
 
     //--------------------------------------------------------------------------------------------------
-    inline float GenerateEnvelope_Flute (SNote& note, float ageInSeconds, float sampleRate) {
-        
-        /*
-            We do an ADSR envelope for flute:  Attack, Decay, Sustain, Release.
+    inline float GenerateNoteSample_Cymbal (SNote& note, float sampleRate, float ageInSeconds) {
 
-            When the note is pressed, it always does an attack and decay envelope.  Attack takes it from
-            0 volume to full volume, then Decay takes it down to the decay volume level.
-
-            Then, as long as the key is held down, it will play at the decay volume.
-
-            When the key is released, it will then do the decay envelope back to silence and then kill
-            the note.
-
-              A
-              /\ D     S
-             /  --------\
-            /            \
-           0              R (0)
-
-        */
-        
-
-        // length of envelope sections
-        static const float c_attackTime = 0.1f;
-        static const float c_decayTime = 0.05f;
-        static const float c_releaseTime = 0.1f;
-        static const float c_noteInitialTime = c_attackTime + c_decayTime;
-
-        // envelope volumes
-        static const float c_attackVolume = 1.0f;
-        static const float c_decayVolume = 0.4f;
-
+        // do the envelope specific behavior
         float envelope = 0.0f;
-
-        // if the key isn't yet released
-        if (note.m_releaseAge == 0) {
-            // release the key if it wants to be released and has done the attack and decay
-            if (note.m_wantsKeyRelease && ageInSeconds > c_noteInitialTime) {
-                note.m_releaseAge = note.m_age;
-            }
-            // else do the attack and decay envelope
-            else {
-                envelope = Envelope3Pt(
-                    ageInSeconds,
-                    0.0f, 0.0f,
-                    c_attackTime, c_attackVolume,
-                    c_noteInitialTime, c_decayVolume
-                );
-            }
+        switch (g_currentMode) {
+            case e_modeSine:    envelope = GenerateEnvelope_Minimal(note, ageInSeconds); break;
+            default:            envelope = GenerateEnvelope_Cymbal(note, ageInSeconds); break;
         }
 
-        // if the key has been released, apply the release 
-        if (note.m_releaseAge != 0) {
-
-            float releaseAgeInSeconds = float(note.m_releaseAge) / sampleRate;
-
-            float secondsInRelease = ageInSeconds - releaseAgeInSeconds;
-
-            envelope = Envelope2Pt(
-                secondsInRelease,
-                0.0f, c_decayVolume,
-                c_releaseTime, 0.0f
-            );
-
-            // kill the note when the release is done
-            if (secondsInRelease > c_releaseTime)
-                note.m_dead = true;
-        }
-
-        return envelope;
+        // return noise shaped by the envelope, taken down in amplitude, so it isn't so loud.
+        return Noise() * envelope * 0.25f;
     }
 
     //--------------------------------------------------------------------------------------------------
     inline float GenerateNoteSample (SNote& note, float sampleRate) {
 
-        float envelope = 0.0f;
-
         // calculate our age in seconds and advance our age in samples, by 1 sample
         float ageInSeconds = float(note.m_age) / sampleRate;
         ++note.m_age;
 
+        if (note.m_mode == e_modeCymbal)
+            return GenerateNoteSample_Cymbal(note, sampleRate, ageInSeconds);
+
         // do the envelope specific behavior
-        switch (note.m_envelope) {
-            case e_envelopeMinimal:     envelope = GenerateEnvelope_Minimal(note, ageInSeconds); break;
-            case e_envelopeBell:        envelope = GenerateEnvelope_Bell(note, ageInSeconds); break;
-            case e_envelopeReverseBell: envelope = GenerateEnvelope_ReverseBell(note, ageInSeconds); break;
-            case e_envelopeFlute:       envelope = GenerateEnvelope_Flute(note, ageInSeconds, sampleRate); break;
+        float envelope = 0.0f;
+        switch (note.m_mode) {
+            case e_modeSine:    envelope = GenerateEnvelope_Minimal(note, ageInSeconds); break;
+            default:            envelope = GenerateEnvelope_Drum(note, ageInSeconds, note.m_mode == e_modeSineEnvelopeDecayPop); break;
         }
 
+        // make frequency decay over time if we should
+        float frequency = note.m_frequency;
+        if (note.m_mode >= e_modeSineEnvelopeDecay && ageInSeconds > 0.020f) {
+            float percent = (ageInSeconds - 0.020f) / 0.175f;
+            frequency = Lerp(frequency, frequency*0.2f, percent);
+        }
+
+        // advance phase
+        note.m_phase = std::fmodf(note.m_phase + frequency / sampleRate, 1.0f);
+
         // generate the sine value for the current time.
-        // Note that it is ok that we are basing audio samples on age instead of phase, because the
-        // frequency never changes and we envelope the front and back to avoid popping.
-        return  std::sinf(ageInSeconds*note.m_frequency*2.0f*c_pi) * envelope;
+        return SineWave(note.m_phase) * envelope;
     }
 
     //--------------------------------------------------------------------------------------------------
     void GenerateAudioSamples (float *outputBuffer, size_t framesPerBuffer, size_t numChannels, float sampleRate) {
+
+        // initialize our effects
+        static SMultiTapReverbEffect reverbEffect;
+        static bool effectsInitialized = false;
+        if (!effectsInitialized) {
+            reverbEffect.SetEffectParams(sampleRate, numChannels);
+            effectsInitialized = true;
+        }
+
+        // clear out the buffer when we turn on or off reverb, to clera out old sounds
+        static bool wasReverbOn = false;
+        bool isReverbOn = g_currentMode >= e_modeSineEnvelopeDecayPopReverb;
+        if (wasReverbOn != isReverbOn) {
+            wasReverbOn = isReverbOn;
+            reverbEffect.ClearBuffer();
+        }
 
         // get a lock on our notes vector
         std::lock_guard<std::mutex> guard(g_notesMutex);
@@ -230,6 +199,10 @@ namespace Demo5_Envelopes {
                     value += GenerateNoteSample(note, sampleRate);
                 }
             );
+
+            // apply effects if appropriate
+            if (isReverbOn)
+                value = reverbEffect.AddSample(value);
 
             // copy the value to all audio channels
             for (size_t channel = 0; channel < numChannels; ++channel)
@@ -250,41 +223,29 @@ namespace Demo5_Envelopes {
     }
 
     //--------------------------------------------------------------------------------------------------
-    void StopFluteNote (float frequency) {
-
-        // get a lock on our notes vector
-        std::lock_guard<std::mutex> guard(g_notesMutex);
-
-        // Any note that is a flute note of this frequency should note that it wants to enter released
-        // state.
-        std::for_each(
-            g_notes.begin(),
-            g_notes.end(),
-            [frequency] (SNote& note) {
-                if (note.m_envelope == e_envelopeFlute && note.m_frequency == frequency) {
-                    note.m_wantsKeyRelease = true;
-                }
-            }
-        );
-    }
-
-    //--------------------------------------------------------------------------------------------------
     void ReportParams() {
-        printf("Envelope: %s\r\n", EnvelopeToString(g_currentEnvelope));
+        printf("Mode: %s\r\n", ModeToString(g_currentMode));
     }
 
     //--------------------------------------------------------------------------------------------------
     void OnKey (char key, bool pressed) {
 
-        // pressing numbers switch envelopes
-        if (pressed) {
-            switch (key)
-            {
-                case '1': g_currentEnvelope = e_envelopeMinimal; ReportParams(); return;
-                case '2': g_currentEnvelope = e_envelopeBell; ReportParams(); return;
-                case '3': g_currentEnvelope = e_envelopeReverseBell; ReportParams(); return;
-                case '4': g_currentEnvelope = e_envelopeFlute; ReportParams(); return;
-            }
+        // nothing to do on key release
+        if (!pressed)
+            return;
+
+        // pressing 1 switches modes
+        if (key == '1') {
+            g_currentMode = EMode((g_currentMode + 1) % e_modeCount);
+            ReportParams();
+            return;
+        }
+
+        // space bar = cymbals
+        if (key == ' ') {
+            std::lock_guard<std::mutex> guard(g_notesMutex);
+            g_notes.push_back(SNote(0.0f, e_modeCymbal));
+            return;
         }
 
         // figure out what frequency to play
@@ -340,28 +301,22 @@ namespace Demo5_Envelopes {
             }
         }
 
-
-        // if releasing a note, we want to do nothing in most modes.
-        // in flute mode, we need to find and kill the flute note of the same frequency
-        if (!pressed) {
-            if (g_currentEnvelope == e_envelopeFlute) {
-                StopFluteNote(frequency);
-            }
-            return;
-        }
-
         // get a lock on our notes vector and add the new note
         std::lock_guard<std::mutex> guard(g_notesMutex);
-        g_notes.push_back(SNote(frequency, g_currentEnvelope));
+        g_notes.push_back(SNote(frequency, g_currentMode));
     }
 
     //--------------------------------------------------------------------------------------------------
     void OnEnterDemo () {
-        g_currentEnvelope = e_envelopeMinimal;
-        printf("Letter keys to play notes.\r\nleft shift / control is super low frequency.\r\n");
-        printf("1 = minimal\r\n");
-        printf("2 = bell\r\n");
-        printf("3 = reverse bell\r\n");
-        printf("4 = flute\r\n");
+        g_currentMode = e_modeSine;
+        printf("1 = cycle drum mode.\r\nLetter keys to play drums.\r\nleft shift / control is super low frequency.\r\nSpace for Cymbals\r\nGood Beat = cmdm cmdm\r\nAnother good beat = mcm<space> mcm<space>\r\n");
     }
 }
+
+/*
+
+TODO:
+
+* make demo 8 show frequency of vib / trem as you change it instead of just slow / fast / etc
+
+*/

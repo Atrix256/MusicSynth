@@ -10,7 +10,7 @@
 EDemo CDemoMgr::s_currentDemo = e_demoFirst;
 bool CDemoMgr::s_exit = false;
 float CDemoMgr::s_volumeMultiplier = 1.0f;
-bool CDemoMgr::s_clippingOn = true;
+bool CDemoMgr::s_clippingOn = false;
 FILE* CDemoMgr::s_recordingWavFile = nullptr;
 
 // for recording audio

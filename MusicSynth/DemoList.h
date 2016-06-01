@@ -17,5 +17,6 @@ DEMO(9_FMSynth)
 DEMO(10_Delay)
 DEMO(11_Reverb)
 DEMO(12_Flange)
+DEMO(13_Drum)
 
 #undef DEMO
