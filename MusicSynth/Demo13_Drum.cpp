@@ -312,11 +312,3 @@ namespace Demo13_Drum {
         printf("1 = cycle drum mode.\r\nLetter keys to play drums.\r\nleft shift / control is super low frequency.\r\nSpace for Cymbals\r\nGood Beat = cmdm cmdm\r\nAnother good beat = mcm<space> mcm<space>\r\n");
     }
 }
-
-/*
-
-TODO:
-
-* make demo 8 show frequency of vib / trem as you change it instead of just slow / fast / etc
-
-*/

@@ -71,6 +71,7 @@
     <ClCompile Include="Demo10_Delay.cpp" />
     <ClCompile Include="Demo12_Flange.cpp" />
     <ClCompile Include="Demo13_Drum.cpp" />
+    <ClCompile Include="Demo14_Ducking.cpp" />
     <ClCompile Include="Demo6_WaveForms.cpp" />
     <ClCompile Include="Demo2_Popping.cpp" />
     <ClCompile Include="Demo3_Clipping.cpp" />

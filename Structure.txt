@@ -1,5 +1,11 @@
 Presentation is on 7/1/16
 
+? maybe have free play at menu / demo 0? easy to get to.
+ * space = cymbal
+ * bottom letters = drums
+ * letters = notes
+ * numbers to change wave forms & toggle effects?
+
 * invite nathan and sound guys too
 
 ? lament of tim curry may make good intro music? play it looping

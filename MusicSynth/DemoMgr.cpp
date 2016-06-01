@@ -9,7 +9,7 @@
 
 EDemo CDemoMgr::s_currentDemo = e_demoFirst;
 bool CDemoMgr::s_exit = false;
-float CDemoMgr::s_volumeMultiplier = 1.0f;
+float CDemoMgr::s_volumeMultiplier = 0.9f;
 bool CDemoMgr::s_clippingOn = false;
 FILE* CDemoMgr::s_recordingWavFile = nullptr;
 
@@ -20,6 +20,7 @@ SWaveFileHeader CDemoMgr::s_waveFileHeader;
 size_t CDemoMgr::s_recordedNumSamples;
 size_t CDemoMgr::s_recordingNumChannels;
 size_t CDemoMgr::s_recordingSampleRate;
+size_t CDemoMgr::s_sampleClock; // yes in 32 bit mode this is a uint32 and could roll over, but it would take 27 hours.
 
 //--------------------------------------------------------------------------------------------------
 static bool FileExists (const char* fileName) {

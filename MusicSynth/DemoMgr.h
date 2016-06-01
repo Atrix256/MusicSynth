@@ -93,6 +93,8 @@ public:
             }
         }
 
+        s_sampleClock += framesPerBuffer;
+
         lastVolumeMultiplier = volumeMultiplier;
 
         // if we are recording, add this frame to our frame queue
@@ -181,6 +183,8 @@ public:
 
     static bool WantsExit () { return s_exit; }
 
+    static size_t GetSampleClock () { return s_sampleClock; }
+
 private:
     static void FlushRecordingBuffers ();
     static void ClearRecordingBuffers ();
@@ -224,4 +228,5 @@ private:
     static size_t                                           s_recordedNumSamples;
     static size_t                                           s_recordingNumChannels;
     static size_t                                           s_recordingSampleRate;
+    static size_t                                           s_sampleClock;
 };
