@@ -51,6 +51,12 @@ namespace Demo11_Reverb {
     bool                g_reverbOn;
 
     //--------------------------------------------------------------------------------------------------
+    void OnInit() { }
+
+    //--------------------------------------------------------------------------------------------------
+    void OnExit() { }
+
+    //--------------------------------------------------------------------------------------------------
     inline float GenerateEnvelope (SNote& note, float ageInSeconds, float sampleRate) {
 
         // this just puts a short envelope on the beginning and end of the note and kills the note

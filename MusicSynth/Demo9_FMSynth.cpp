@@ -73,6 +73,12 @@ namespace Demo9_FMSynth {
     std::mutex          g_notesMutex;
 
     //--------------------------------------------------------------------------------------------------
+    void OnInit() { }
+
+    //--------------------------------------------------------------------------------------------------
+    void OnExit() { }
+
+    //--------------------------------------------------------------------------------------------------
     inline float GenerateEnvelope_Simple (SNote& note, float ageInSeconds, float sampleRate) {
 
         // this just puts a short envelope on the beginning and end of the note and kills the note

@@ -29,6 +29,12 @@ namespace Demo2_Popping {
     EMode g_mode = e_silence;
 
     //--------------------------------------------------------------------------------------------------
+    void OnInit() { }
+
+    //--------------------------------------------------------------------------------------------------
+    void OnExit() { }
+
+    //--------------------------------------------------------------------------------------------------
     void GenerateAudioSamples (float *outputBuffer, size_t framesPerBuffer, size_t numChannels, float sampleRate) {
 
         // state information stored as statics

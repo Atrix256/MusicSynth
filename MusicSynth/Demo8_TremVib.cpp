@@ -54,6 +54,12 @@ namespace Demo8_TremVib {
     EEffectSpeed        g_vibrato;
 
     //--------------------------------------------------------------------------------------------------
+    void OnInit() { }
+
+    //--------------------------------------------------------------------------------------------------
+    void OnExit() { }
+
+    //--------------------------------------------------------------------------------------------------
     inline float GenerateEnvelope (SNote& note, float ageInSeconds, float sampleRate) {
 
         // this just puts a short envelope on the beginning and end of the note and kills the note

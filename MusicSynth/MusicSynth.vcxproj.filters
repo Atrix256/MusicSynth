@@ -63,6 +63,9 @@
     <ClCompile Include="Demo14_Ducking.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="WavFile.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DemoMgr.h">
@@ -74,10 +77,10 @@
     <ClInclude Include="AudioUtils.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="SWaveFileHeader.h">
+    <ClInclude Include="AudioEffects.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="AudioEffects.h">
+    <ClInclude Include="WavFile.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

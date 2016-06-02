@@ -12,6 +12,12 @@ namespace Demo1_Sine {
     float g_frequency = 0.0f;
 
     //--------------------------------------------------------------------------------------------------
+    void OnInit() { }
+
+    //--------------------------------------------------------------------------------------------------
+    void OnExit() { }
+
+    //--------------------------------------------------------------------------------------------------
     void GenerateAudioSamples (float *outputBuffer, size_t framesPerBuffer, size_t numChannels, float sampleRate) {
         static float phase = 0.0f;
 

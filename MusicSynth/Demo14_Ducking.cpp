@@ -11,26 +11,21 @@
 
 namespace Demo14_Ducking {
 
-    enum EInstrument {
-        e_drum,
-        e_cymbal
+    enum ESample {
+        e_drum1,
+        e_drum2,
+        e_drum3,
     };
 
     struct SNote {
-        SNote(float frequency, EInstrument instrument)
-            : m_frequency(frequency)
-            , m_instrument(instrument)
+        SNote(ESample sample)
+            : m_sample(sample)
             , m_age(0)
-            , m_dead(false)
-            , m_releaseAge(0)
-            , m_phase(0.0f) {}
+            , m_dead(false) {}
 
-        float       m_frequency;
-        EInstrument m_instrument;
-        size_t      m_age;
-        bool        m_dead;
-        size_t      m_releaseAge;
-        float       m_phase;
+        ESample m_sample;
+        size_t  m_age;
+        bool    m_dead;
     };
 
     std::vector<SNote>  g_notes;
@@ -40,79 +35,22 @@ namespace Demo14_Ducking {
     bool                g_duckingOn;
     bool                g_drumsOn;
 
+    SWavFile            g_drumSamples[3];
+
     //--------------------------------------------------------------------------------------------------
-    inline float GenerateEnvelope_Drum (SNote& note, float ageInSeconds) {
-        // use an envelope that sounds "drum like"
-        float envelope = Envelope4Pt(
-            ageInSeconds,
-            0.000f, 0.0f,
-            0.010f, 1.0f,            //  10ms: attack (silence -> full volume)
-            0.020f, 1.0f,            //  10ms: hold (full volume)
-            0.195f, 0.0f             // 175ms: decay (full volume -> silence)
-        );
+    void OnInit() {
+        if (!g_drumSamples[0].Load("Samples/clap.wav", CDemoMgr::GetNumChannels(), (size_t)CDemoMgr::GetSampleRate()))
+            printf("Could not load Samples/clap.wav.\r\n");
 
-        // kill notes that are too old
-        if (ageInSeconds > 0.195)
-            note.m_dead = true;
+        if (!g_drumSamples[1].Load("Samples/kick.wav", CDemoMgr::GetNumChannels(), (size_t)CDemoMgr::GetSampleRate()))
+            printf("Could not load Samples/kick.wav.\r\n");
 
-        return envelope;
+        if (!g_drumSamples[2].Load("Samples/ting.wav", CDemoMgr::GetNumChannels(), (size_t)CDemoMgr::GetSampleRate()))
+            printf("Could not load Samples/ting.wav.\r\n");
     }
 
     //--------------------------------------------------------------------------------------------------
-    inline float GenerateEnvelope_Cymbal (SNote& note, float ageInSeconds) {
-        // use an envelope that sounds "drum like"
-        float envelope = Envelope5Pt(
-            ageInSeconds,
-            0.000f, 0.0f,
-            0.010f, 1.0f,            //  10ms: attack (silence -> full volume)
-            0.020f, 1.0f,            //  10ms: hold (full volume)
-            0.040f, 0.2f,            //  20ms: decay1 (full volume -> less volume)
-            0.215f, 0.0f             // 175ms: decay (less volume -> silence)
-        );
-
-        // kill notes that are too old
-        if (ageInSeconds > 0.215)
-            note.m_dead = true;
-
-        return envelope;
-    }
-
-    //--------------------------------------------------------------------------------------------------
-    inline float GenerateNoteSample_Cymbal (SNote& note, float sampleRate, float ageInSeconds, float& envelope) {
-        
-        // make the envelope
-        envelope = GenerateEnvelope_Cymbal(note, ageInSeconds);
-
-        // return noise shaped by the envelope, taken down in amplitude, so it isn't so loud.
-        return Noise() * envelope * 0.25f;
-    }
-
-    //--------------------------------------------------------------------------------------------------
-    inline float GenerateNoteSample (SNote& note, float sampleRate, float& envelope) {
-
-        // calculate our age in seconds and advance our age in samples, by 1 sample
-        float ageInSeconds = float(note.m_age) / sampleRate;
-        ++note.m_age;
-
-        if (note.m_instrument == e_cymbal)
-            return GenerateNoteSample_Cymbal(note, sampleRate, ageInSeconds, envelope);
-
-        // make a drum envelope
-        envelope = GenerateEnvelope_Drum(note, ageInSeconds);
-
-        // make frequency decay over time if we should
-        float frequency = note.m_frequency;
-        if (ageInSeconds > 0.020f) {
-            float percent = (ageInSeconds - 0.020f) / 0.175f;
-            frequency = Lerp(frequency, frequency*0.2f, percent);
-        }
-
-        // advance phase
-        note.m_phase = std::fmodf(note.m_phase + frequency / sampleRate, 1.0f);
-
-        // generate the sine value for the current time.
-        return SineWave(note.m_phase) * envelope;
-    }
+    void OnExit() { }
 
     //--------------------------------------------------------------------------------------------------
     float GenerateMusicSample (size_t timeOffset, float sampleRate) {
@@ -222,17 +160,20 @@ namespace Demo14_Ducking {
         // for every sample in our output buffer
         for (size_t sample = 0; sample < framesPerBuffer; ++sample, outputBuffer += numChannels) {
             
-            // add up all notes to get the final value.
+            // add up all samples to get the final value.
             float value = 0.0f;
-            float maxEnvelope = 0.0f;
             std::for_each(
                 g_notes.begin(),
                 g_notes.end(),
-                [&value, sampleRate, &maxEnvelope](SNote& note) {
-                    float envelope = 0.0f;
-                    value += GenerateNoteSample(note, sampleRate, envelope);
-                    if (envelope > maxEnvelope)
-                        maxEnvelope = envelope;
+                [&value, numChannels](SNote& note) {
+                    size_t sampleIndex = note.m_age*numChannels;
+                    if (sampleIndex >= g_drumSamples[note.m_sample].m_numSamples) {
+                        note.m_dead = true;
+                        return;
+                    }
+
+                    value += g_drumSamples[note.m_sample].m_samples[sampleIndex];
+                    ++note.m_age;
                 }
             );
 
@@ -243,7 +184,7 @@ namespace Demo14_Ducking {
             // get our music sample, apply ducking if we should, and add it to our other sample
             float musicSample = GenerateMusicSample(sample, sampleRate);
             if (g_duckingOn)
-                musicSample *= (1.0f - maxEnvelope);
+                musicSample *= 1.0f;
             value += musicSample;
 
             // copy the value to all audio channels
@@ -297,61 +238,13 @@ namespace Demo14_Ducking {
             return;
         }
 
-        // space bar = cymbals
-        if (key == ' ') {
-            std::lock_guard<std::mutex> guard(g_notesMutex);
-            g_notes.push_back(SNote(0.0f, e_cymbal));
-            return;
-        }
-
-        // figure out what frequency to play
+        // figure out what sample to play
+        ESample sample = e_drum1;
         float frequency = 0.0f;
         switch (key) {
-            // QWERTY row
-            case 'Q': frequency = NoteToFrequency(3, 0); break;
-            case 'W': frequency = NoteToFrequency(3, 1); break;
-            case 'E': frequency = NoteToFrequency(3, 2); break;
-            case 'R': frequency = NoteToFrequency(3, 3); break;
-            case 'T': frequency = NoteToFrequency(3, 4); break;
-            case 'Y': frequency = NoteToFrequency(3, 5); break;
-            case 'U': frequency = NoteToFrequency(3, 6); break;
-            case 'I': frequency = NoteToFrequency(3, 7); break;
-            case 'O': frequency = NoteToFrequency(3, 8); break;
-            case 'P': frequency = NoteToFrequency(3, 9); break;
-            case -37: frequency = NoteToFrequency(3, 10); break;
-
-            // ASDF row
-            case 'A': frequency = NoteToFrequency(2, 0); break;
-            case 'S': frequency = NoteToFrequency(2, 1); break;
-            case 'D': frequency = NoteToFrequency(2, 2); break;
-            case 'F': frequency = NoteToFrequency(2, 3); break;
-            case 'G': frequency = NoteToFrequency(2, 4); break;
-            case 'H': frequency = NoteToFrequency(2, 5); break;
-            case 'J': frequency = NoteToFrequency(2, 6); break;
-            case 'K': frequency = NoteToFrequency(2, 7); break;
-            case 'L': frequency = NoteToFrequency(2, 8); break;
-            case -70: frequency = NoteToFrequency(2, 9); break;
-            case -34: frequency = NoteToFrequency(2, 10); break;
-
-            // ZXCV row
-            case 'Z': frequency = NoteToFrequency(1, 0); break;
-            case 'X': frequency = NoteToFrequency(1, 1); break;
-            case 'C': frequency = NoteToFrequency(1, 2); break;
-            case 'V': frequency = NoteToFrequency(1, 3); break;
-            case 'B': frequency = NoteToFrequency(1, 4); break;
-            case 'N': frequency = NoteToFrequency(1, 5); break;
-            case 'M': frequency = NoteToFrequency(1, 6); break;
-            case -68: frequency = NoteToFrequency(1, 7); break;
-            case -66: frequency = NoteToFrequency(1, 8); break;
-            case -65: frequency = NoteToFrequency(1, 9); break;
-            case -95: frequency = NoteToFrequency(1, 10); break;  // right shift
-
-            // left shift = low freq
-            case 16: frequency = NoteToFrequency(0, 5); break;
-
-            // left shift = low freq
-            case -94: frequency = NoteToFrequency(0, 0); break;
-
+            case 'Q': sample = e_drum1; break;
+            case 'W': sample = e_drum2; break;
+            case 'E': sample = e_drum3; break;
             default: {
                 return;
             }
@@ -359,7 +252,7 @@ namespace Demo14_Ducking {
 
         // get a lock on our notes vector and add the new note
         std::lock_guard<std::mutex> guard(g_notesMutex);
-        g_notes.push_back(SNote(frequency, e_drum));
+        g_notes.push_back(SNote(sample));
     }
 
     //--------------------------------------------------------------------------------------------------
@@ -367,6 +260,7 @@ namespace Demo14_Ducking {
         g_musicOn = false;
         g_duckingOn = false;
         g_drumsOn = true;
+
         printf("Letter keys to play drums, space to play cymbals.\r\nleft shift / control is super low frequency.\r\n");
         printf("1 = toggle music\r\n");
         printf("2 = toggle ducking\r\n");
@@ -378,6 +272,11 @@ namespace Demo14_Ducking {
 
 TODO:
 
+* update description
+* make everything work again
+* there is a lot of popping, may need to envelope it, or look into why.
+ ? maybe resampling?
+
 * I think we might need a different envelope for ducking music than for the sounds themselves.
 
 * make the bg music not suck.  Maybe take it from lament of tim curry, or maybe play ghost jazz.
@@ -386,5 +285,7 @@ TODO:
  
 
 * make demo 8 show frequency of vib / trem as you change it instead of just slow / fast / etc
+
+* we are hard coding the channels and sample rate... no good!
 
 */

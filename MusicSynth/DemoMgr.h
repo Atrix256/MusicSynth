@@ -9,7 +9,7 @@
 
 #include <stdio.h>
 #include "AudioUtils.h"
-#include "SWaveFileHeader.h"
+#include "WavFile.h"
 #include <vector>
 #include <mutex>
 #include <queue>
@@ -31,16 +31,24 @@ enum EDemo {
     void GenerateAudioSamples (float *outputBuffer, size_t framesPerBuffer, size_t numChannels, float sampleRate); \
     void OnKey (char key, bool pressed); \
     void OnEnterDemo (); \
+    void OnInit (); \
+    void OnExit (); \
 };
 #include "DemoList.h"
 
 //--------------------------------------------------------------------------------------------------
 class CDemoMgr {
 public:
-    inline static void Init () {
+    inline static void Init (float sampleRate, size_t numChannels) {
         printf("\r\n\r\n\r\n\r\n============================================\r\n");
         printf("Welcome!\r\nUp and down to adjust volume.\r\nLeft and right to change demo.\r\nEnter to toggle clipping.\r\nbackspace to toggle audio recording.\r\nEscape to exit.\r\n");
         printf("============================================\r\n\r\n");
+
+        s_sampleRate = sampleRate;
+        s_numChannels = numChannels;
+
+        #define DEMO(name) Demo##name::OnInit();
+        #include "DemoList.h"
 
         // let the demo know we've entered too
         OnEnterDemo();
@@ -179,11 +187,17 @@ public:
         if (IsRecording())
             StopRecording();
         s_exit = true;
+
+        // tell all of our demos about exit in case they need to do any clean up
+        #define DEMO(name) Demo##name::OnExit();
+        #include "DemoList.h"
     }
 
     static bool WantsExit () { return s_exit; }
 
     static size_t GetSampleClock () { return s_sampleClock; }
+    static size_t GetNumChannels () { return s_numChannels; }
+    static float GetSampleRate () { return s_sampleRate; }
 
 private:
     static void FlushRecordingBuffers ();
@@ -229,4 +243,6 @@ private:
     static size_t                                           s_recordingNumChannels;
     static size_t                                           s_recordingSampleRate;
     static size_t                                           s_sampleClock;
+    static size_t                                           s_numChannels;
+    static float                                            s_sampleRate;
 };

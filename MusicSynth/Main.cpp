@@ -132,7 +132,7 @@ int main (int argc, char **argv)
 
     // loop of sending key events to demo manager, until it wants to exit.
     // also give the demo manager an update
-    CDemoMgr::Init();
+    CDemoMgr::Init(g_sampleRate, g_numChannels);
     SKeyState keyState1;
     SKeyState keyState2;
     SKeyState* oldKeyState = &keyState1;

@@ -56,6 +56,12 @@ namespace Demo13_Drum {
     EMode               g_currentMode;
 
     //--------------------------------------------------------------------------------------------------
+    void OnInit() { }
+
+    //--------------------------------------------------------------------------------------------------
+    void OnExit() { }
+
+    //--------------------------------------------------------------------------------------------------
     inline float GenerateEnvelope_Minimal (SNote& note, float ageInSeconds) {
         // note lifetime
         static const float c_noteLifeTime = 0.25f;

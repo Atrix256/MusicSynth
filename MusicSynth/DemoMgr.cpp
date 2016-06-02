@@ -21,6 +21,8 @@ size_t CDemoMgr::s_recordedNumSamples;
 size_t CDemoMgr::s_recordingNumChannels;
 size_t CDemoMgr::s_recordingSampleRate;
 size_t CDemoMgr::s_sampleClock; // yes in 32 bit mode this is a uint32 and could roll over, but it would take 27 hours.
+size_t CDemoMgr::s_numChannels;
+float CDemoMgr::s_sampleRate;
 
 //--------------------------------------------------------------------------------------------------
 static bool FileExists (const char* fileName) {

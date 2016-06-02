@@ -49,6 +49,12 @@ namespace Demo5_Envelopes {
     EEnvelope           g_currentEnvelope;
 
     //--------------------------------------------------------------------------------------------------
+    void OnInit() { }
+
+    //--------------------------------------------------------------------------------------------------
+    void OnExit() { }
+
+    //--------------------------------------------------------------------------------------------------
     inline float GenerateEnvelope_Minimal (SNote& note, float ageInSeconds) {
         // note lifetime
         static const float c_noteLifeTime = 0.25f;
