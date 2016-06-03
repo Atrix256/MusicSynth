@@ -369,5 +369,9 @@ namespace Demo5_Envelopes {
         printf("2 = bell\r\n");
         printf("3 = reverse bell\r\n");
         printf("4 = flute\r\n");
+
+        // clear all the notes out
+        std::lock_guard<std::mutex> guard(g_notesMutex);
+        g_notes.clear();
     }
 }

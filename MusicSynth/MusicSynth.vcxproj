@@ -84,6 +84,7 @@
     <ClCompile Include="Demo1_Sine.cpp" />
     <ClCompile Include="Demo11_Reverb.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="Samples.cpp" />
     <ClCompile Include="WavFile.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -91,6 +92,8 @@
     <ClInclude Include="AudioUtils.h" />
     <ClInclude Include="DemoList.h" />
     <ClInclude Include="DemoMgr.h" />
+    <ClInclude Include="SampleList.h" />
+    <ClInclude Include="Samples.h" />
     <ClInclude Include="WavFile.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

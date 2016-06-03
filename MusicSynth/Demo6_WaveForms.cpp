@@ -273,5 +273,9 @@ namespace Demo6_WaveForms {
         printf("2 = Saw\r\n");
         printf("3 = Square\r\n");
         printf("4 = Triangle\r\n");
+
+        // clear all the notes out
+        std::lock_guard<std::mutex> guard(g_notesMutex);
+        g_notes.clear();
     }
 }

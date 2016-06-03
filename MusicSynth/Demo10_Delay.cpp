@@ -15,7 +15,10 @@ namespace Demo10_Delay {
         e_waveSine,
         e_waveSaw,
         e_waveSquare,
-        e_waveTriangle
+        e_waveTriangle,
+
+        e_sampleCymbals,
+        e_sampleVoice,
     };
 
     enum EDelay {
@@ -121,6 +124,29 @@ namespace Demo10_Delay {
     }
 
     //--------------------------------------------------------------------------------------------------
+    inline float SampleAudioSample(SNote& note, SWavFile& sample, float ageInSeconds) {
+
+        // handle the note dieing when it is done
+        size_t sampleIndex = note.m_age*sample.m_numChannels;
+        if (sampleIndex >= sample.m_numSamples) {
+            note.m_dead = true;
+            return 0.0f;
+        }
+
+        // calculate and apply an envelope to the sound samples
+        float envelope = Envelope4Pt(
+            ageInSeconds,
+            0.0f, 0.0f,
+            0.1f, 1.0f,
+            sample.m_lengthSeconds - 0.1f, 1.0f,
+            sample.m_lengthSeconds, 0.0f
+            );
+
+        // return the sample value multiplied by the envelope
+        return sample.m_samples[sampleIndex] * envelope;
+    }
+
+    //--------------------------------------------------------------------------------------------------
     inline float GenerateNoteSample (SNote& note, float sampleRate) {
         // calculate our age in seconds and advance our age in samples, by 1 sample
         float ageInSeconds = float(note.m_age) / sampleRate;
@@ -135,10 +161,12 @@ namespace Demo10_Delay {
         // frequency never changes and we envelope the front and back to avoid popping.
         float phase = std::fmodf(ageInSeconds * note.m_frequency, 1.0f);
         switch (note.m_waveForm) {
-            case e_waveSine:    return SineWave(phase) * envelope;
-            case e_waveSaw:     return SawWaveBandLimited(phase, 10) * envelope;
-            case e_waveSquare:  return SquareWaveBandLimited(phase, 10) * envelope;
-            case e_waveTriangle:return TriangleWaveBandLimited(phase, 10) * envelope;
+            case e_waveSine:        return SineWave(phase) * envelope;
+            case e_waveSaw:         return SawWaveBandLimited(phase, 10) * envelope;
+            case e_waveSquare:      return SquareWaveBandLimited(phase, 10) * envelope;
+            case e_waveTriangle:    return TriangleWaveBandLimited(phase, 10) * envelope;
+            case e_sampleCymbals:   return SampleAudioSample(note, g_sample_cymbal, ageInSeconds);
+            case e_sampleVoice:     return SampleAudioSample(note, g_sample_legend1, ageInSeconds);
         }
 
         return 0.0f;
@@ -248,6 +276,16 @@ namespace Demo10_Delay {
                 case '6': g_currentDelay = e_delay1; ReportParams(); return;
                 case '7': g_currentDelay = e_delay2; ReportParams(); return;
                 case '8': g_currentDelay = e_delay3; ReportParams(); return;
+                case '9': {
+                    std::lock_guard<std::mutex> guard(g_notesMutex);
+                    g_notes.push_back(SNote(0.0f, e_sampleCymbals));
+                    return;
+                }
+                case '0': {
+                    std::lock_guard<std::mutex> guard(g_notesMutex);
+                    g_notes.push_back(SNote(0.0f, e_sampleVoice));
+                    return;
+                }
             }
         }
 
@@ -329,5 +367,11 @@ namespace Demo10_Delay {
         printf("6 = Delay 0.25\r\n");
         printf("7 = Delay 0.66\r\n");
         printf("8 = Delay 1.0\r\n");
+        printf("9 = cymbals sample\r\n");
+        printf("0 = voice sample\r\n");
+
+        // clear all the notes out
+        std::lock_guard<std::mutex> guard(g_notesMutex);
+        g_notes.clear();
     }
 }

@@ -219,8 +219,8 @@ namespace Demo8_TremVib {
                 case '2': g_currentWaveForm = e_waveSaw; printf("instrument: bl saw\r\n"); return;
                 case '3': g_currentWaveForm = e_waveSquare; printf("instrument: bl square\r\n"); return;
                 case '4': g_currentWaveForm = e_waveTriangle; printf("instrument: bl triangle\r\n"); return;
-                case '5': g_tremolo = (EEffectSpeed)(((int)g_tremolo + 1) % (e_effectFast+1)); printf("tremolo = %i\r\n", g_tremolo); return;
-                case '6': g_vibrato = (EEffectSpeed)(((int)g_vibrato + 1) % (e_effectFast+1)); printf("vibrato = %i\r\n", g_vibrato); return;
+                case '5': g_tremolo = (EEffectSpeed)(((int)g_tremolo + 1) % (e_effectFast+1)); printf("tremolo = %i (%0.1f hz)\r\n", g_tremolo, GetEffectFrequency(g_tremolo)); return;
+                case '6': g_vibrato = (EEffectSpeed)(((int)g_vibrato + 1) % (e_effectFast + 1)); printf("vibrato = %i (%0.1f hz)\r\n", g_vibrato, GetEffectFrequency(g_vibrato)); return;
             }
         }
 
@@ -302,5 +302,9 @@ namespace Demo8_TremVib {
         printf("4 = Band Limited Triangle\r\n");
         printf("5 = Cycle Tremolo\r\n");
         printf("6 = Cycle Vibrato\r\n");
+
+        // clear all the notes out
+        std::lock_guard<std::mutex> guard(g_notesMutex);
+        g_notes.clear();
     }
 }

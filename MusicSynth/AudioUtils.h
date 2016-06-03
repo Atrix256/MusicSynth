@@ -132,6 +132,19 @@ inline float Lerp (float a, float b, float t) {
 }
 
 //--------------------------------------------------------------------------------------------------
+// t is a value that goes from 0 to 1 to interpolate in a C1 continuous way across uniformly sampled data points.
+// when t is 0, this will return B.  When t is 1, this will return C.
+static float CubicHermite (float A, float B, float C, float D, float t)
+{
+    float a = -A/2.0f + (3.0f*B)/2.0f - (3.0f*C)/2.0f + D/2.0f;
+    float b = A - (5.0f*B)/2.0f + 2.0f*C - D / 2.0f;
+    float c = -A/2.0f + C/2.0f;
+    float d = B;
+ 
+    return a*t*t*t + b*t*t + c*t + d;
+}
+
+//--------------------------------------------------------------------------------------------------
 inline float Envelope2Pt (
     float time,
     float time0, float volume0,

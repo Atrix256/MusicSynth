@@ -6,6 +6,7 @@
 //--------------------------------------------------------------------------------------------------
 
 #include "WavFile.h"
+#include "AudioUtils.h"
 #include <stdio.h>
 #include <memory>
 
@@ -81,29 +82,27 @@ void ChangeNumChannels(float *&pData, int &nNumSamples, int nSrcChannels, int nD
     }
 }
 
-float GetLerpedAudioSample(float *pData, int nNumSamples, float fIndex)
+float GetInterpolatedAudioSample(float *pData, int nNumSamples, float fIndex)
 {
     int nIndex1 = (int)fIndex;
+    int nIndex0 = nIndex1 - 1;
     int nIndex2 = nIndex1 + 1;
+    int nIndex3 = nIndex1 + 2;
 
-    if (nIndex1 < 0)
-        nIndex1 = 0;
+    CLAMP(nIndex0, 0, nNumSamples - 1);
+    CLAMP(nIndex1, 0, nNumSamples - 1);
+    CLAMP(nIndex2, 0, nNumSamples - 1);
+    CLAMP(nIndex3, 0, nNumSamples - 1);
 
-    if (nIndex2 < 0)
-        nIndex2 = 0;
+    float percent = std::fmodf(fIndex, 1.0f);
 
-    if (nIndex1 >= nNumSamples)
-        nIndex1 = nNumSamples - 1;
-
-    if (nIndex2 >= nNumSamples)
-        nIndex2 = nNumSamples - 1;
-
-    float fLerp = fmodf(fIndex, 1.0f);
-
+    float fSample0 = pData[nIndex0];
     float fSample1 = pData[nIndex1];
     float fSample2 = pData[nIndex2];
+    float fSample3 = pData[nIndex3];
 
-    return ((fSample2 - fSample1) * fLerp) + fSample1;
+    // use cubic hermite interpolation for C1 continuity.  Better than lerp, but not as good as sync of course!
+    return CubicHermite(fSample0, fSample1, fSample2, fSample3, percent);
 }
 
 void ResampleData(float *&pData, int &nNumSamples, int nSrcSampleRate, int nDestSampleRate)
@@ -119,9 +118,9 @@ void ResampleData(float *&pData, int &nNumSamples, int nSrcSampleRate, int nDest
     int nNewDataNumSamples = (int)((float)nNumSamples * fResampleRatio);
     float *pNewData = new float[nNewDataNumSamples];
 
-    //get each lerped output sample.  There are higher quality ways to resample
+    //get each interpolated output sample.
     for (int nIndex = 0; nIndex < nNewDataNumSamples; ++nIndex)
-        pNewData[nIndex] = GetLerpedAudioSample(pData, nNumSamples, (float)nIndex / fResampleRatio);
+        pNewData[nIndex] = GetInterpolatedAudioSample(pData, nNumSamples, (float)nIndex / fResampleRatio);
 
     //free the old data and set the new data
     delete[] pData;

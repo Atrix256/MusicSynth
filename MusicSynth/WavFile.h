@@ -94,10 +94,18 @@ public:
             m_numSamples = 0;
         }
 
-        return ReadWaveFile(fileName, m_samples, m_numSamples, numChannels, sampleRate, normalizeData);
+        if (!ReadWaveFile(fileName, m_samples, m_numSamples, numChannels, sampleRate, normalizeData))
+            return false;
+
+        m_sampleRate = sampleRate;
+        m_numChannels = numChannels;
+        m_lengthSeconds = float(m_numSamples / m_numChannels) / float(m_sampleRate);
+        return true;
     }
 
     float*  m_samples;
     size_t  m_numSamples;
-
+    size_t  m_sampleRate;
+    size_t  m_numChannels;
+    float   m_lengthSeconds;
 };

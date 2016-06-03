@@ -8,6 +8,7 @@
 #include "DemoMgr.h"
 #include "AudioEffects.h"
 #include <algorithm>
+#include "Samples.h"
 
 namespace Demo12_Flange {
 
@@ -15,13 +16,17 @@ namespace Demo12_Flange {
         e_waveSine,
         e_waveSaw,
         e_waveSquare,
-        e_waveTriangle
+        e_waveTriangle,
+
+        e_sampleCymbals,
+        e_sampleVoice,
     };
 
     enum EEffect {
         e_none,
         e_flangeSlow,
         e_flangeFast,
+        e_flangeFastAndDeep,
         e_flangeSlowAndReverb,
         
         e_numEffects
@@ -42,6 +47,7 @@ namespace Demo12_Flange {
             case e_none: return "None";
             case e_flangeSlow: return "Slow Flange";
             case e_flangeFast: return "Faster Flange";
+            case e_flangeFastAndDeep: return "Faster Deeper Flange";
             case e_flangeSlowAndReverb: return "Slow Flange and Reverb";
         }
         return "???";
@@ -123,7 +129,31 @@ namespace Demo12_Flange {
     }
 
     //--------------------------------------------------------------------------------------------------
+    inline float SampleAudioSample(SNote& note, SWavFile& sample, float ageInSeconds) {
+
+        // handle the note dieing when it is done
+        size_t sampleIndex = note.m_age*sample.m_numChannels;
+        if (sampleIndex >= sample.m_numSamples) {
+            note.m_dead = true;
+            return 0.0f;
+        }
+
+        // calculate and apply an envelope to the sound samples
+        float envelope = Envelope4Pt(
+            ageInSeconds,
+            0.0f, 0.0f,
+            0.1f, 1.0f,
+            sample.m_lengthSeconds - 0.1f, 1.0f,
+            sample.m_lengthSeconds, 0.0f
+        );
+
+        // return the sample value multiplied by the envelope
+        return sample.m_samples[sampleIndex] * envelope;
+    }
+
+    //--------------------------------------------------------------------------------------------------
     inline float GenerateNoteSample (SNote& note, float sampleRate) {
+
         // calculate our age in seconds and advance our age in samples, by 1 sample
         float ageInSeconds = float(note.m_age) / sampleRate;
         ++note.m_age;
@@ -137,10 +167,12 @@ namespace Demo12_Flange {
         // frequency never changes and we envelope the front and back to avoid popping.
         float phase = std::fmodf(ageInSeconds * note.m_frequency, 1.0f);
         switch (note.m_waveForm) {
-            case e_waveSine:    return SineWave(phase) * envelope;
-            case e_waveSaw:     return SawWaveBandLimited(phase, 10) * envelope;
-            case e_waveSquare:  return SquareWaveBandLimited(phase, 10) * envelope;
-            case e_waveTriangle:return TriangleWaveBandLimited(phase, 10) * envelope;
+            case e_waveSine:        return SineWave(phase) * envelope;
+            case e_waveSaw:         return SawWaveBandLimited(phase, 10) * envelope;
+            case e_waveSquare:      return SquareWaveBandLimited(phase, 10) * envelope;
+            case e_waveTriangle:    return TriangleWaveBandLimited(phase, 10) * envelope;
+            case e_sampleCymbals:   return SampleAudioSample(note, g_sample_cymbal, ageInSeconds);
+            case e_sampleVoice:     return SampleAudioSample(note, g_sample_legend1, ageInSeconds);
         }
 
         return 0.0f;
@@ -169,8 +201,9 @@ namespace Demo12_Flange {
 
             switch (currentEffect) {
                 case e_flangeSlowAndReverb:
-                case e_flangeSlow: flangeEffect.SetEffectParams(sampleRate, numChannels, 0.25f, 0.02f); break;
-                case e_flangeFast: flangeEffect.SetEffectParams(sampleRate, numChannels, 1.0f, 0.05f); break;
+                case e_flangeSlow: flangeEffect.SetEffectParams(sampleRate, numChannels, 0.4f, 0.001f); break;
+                case e_flangeFast: flangeEffect.SetEffectParams(sampleRate, numChannels, 1.2f, 0.001f); break;
+                case e_flangeFastAndDeep: flangeEffect.SetEffectParams(sampleRate, numChannels, 1.2f, 0.005f); break;
             }
         }
 
@@ -254,6 +287,16 @@ namespace Demo12_Flange {
                 case '3': g_currentWaveForm = e_waveSquare; ReportParams(); return;
                 case '4': g_currentWaveForm = e_waveTriangle; ReportParams(); return;
                 case '5': g_effect = EEffect(int(g_effect+1)%e_numEffects); ReportParams(); return;
+                case '6': {
+                    std::lock_guard<std::mutex> guard(g_notesMutex);
+                    g_notes.push_back(SNote(0.0f, e_sampleCymbals));
+                    return;
+                }
+                case '7': {
+                    std::lock_guard<std::mutex> guard(g_notesMutex);
+                    g_notes.push_back(SNote(0.0f, e_sampleVoice));
+                    return;
+                }
             }
         }
 
@@ -332,5 +375,11 @@ namespace Demo12_Flange {
         printf("3 = Band Limited Square\r\n");
         printf("4 = Band Limited Triangle\r\n");
         printf("5 = Cycle Effect\r\n");
+        printf("6 = cymbals sample\r\n");
+        printf("7 = voice sample\r\n");
+
+        // clear all the notes out
+        std::lock_guard<std::mutex> guard(g_notesMutex);
+        g_notes.clear();
     }
 }

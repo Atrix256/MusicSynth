@@ -179,5 +179,9 @@ namespace Demo4_Mixing {
     //--------------------------------------------------------------------------------------------------
     void OnEnterDemo () {
         printf("Press the keys to play different sine tones polyphonically.\r\nleft shift / control is super low frequency.\r\n");
+
+        // clear all the notes out
+        std::lock_guard<std::mutex> guard(g_notesMutex);
+        g_notes.clear();
     }
 }

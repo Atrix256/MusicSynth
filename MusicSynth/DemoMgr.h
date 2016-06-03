@@ -14,6 +14,7 @@
 #include <mutex>
 #include <queue>
 #include <memory>
+#include "Samples.h"
 
 //--------------------------------------------------------------------------------------------------
 enum EDemo {
@@ -47,6 +48,10 @@ public:
         s_sampleRate = sampleRate;
         s_numChannels = numChannels;
 
+        // load the audio samples
+        LoadSamples();
+
+        // give each demo and OnInit() call
         #define DEMO(name) Demo##name::OnInit();
         #include "DemoList.h"
 

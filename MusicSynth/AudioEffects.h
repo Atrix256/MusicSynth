@@ -177,9 +177,12 @@ struct SFlangeEffect {
         float tapOffsetFloat = (SineWave(m_phase) * 0.5f + 0.5f) * float((m_bufferSize / m_numChannels) - 1);
         float percent = std::fmodf(tapOffsetFloat, 1.0f);
         size_t tapOffset = size_t(tapOffsetFloat) * m_numChannels;
+        float tap0 = m_buffer[(m_sampleIndex + tapOffset + m_bufferSize - m_numChannels) % m_bufferSize];
         float tap1 = m_buffer[(m_sampleIndex + tapOffset) % m_bufferSize];
         float tap2 = m_buffer[(m_sampleIndex + tapOffset + m_numChannels) % m_bufferSize];
-        float tap = Lerp(tap1, tap2, percent);
+        float tap3 = m_buffer[(m_sampleIndex + tapOffset + m_numChannels + m_numChannels) % m_bufferSize];
+        //float tap = Lerp(tap1, tap2, percent);
+        float tap = CubicHermite(tap0, tap1, tap2, tap3, percent);
 
         // put the sample into the buffer
         m_buffer[m_sampleIndex] = sample;
