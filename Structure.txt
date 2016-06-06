@@ -1,5 +1,9 @@
 Presentation is on 7/1/16
 
+* explain how to calculate the frequency of notes, and show some notes & frequencies in a table
+
+* explain wet vs dry?
+
 ? maybe have free play at menu / demo 0? easy to get to.
  * space = cymbal
  * bottom letters = drums

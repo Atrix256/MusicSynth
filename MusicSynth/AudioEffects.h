@@ -107,9 +107,6 @@ struct SMultiTapReverbEffect {
     }
 
     float AddSample (float sample) {
-        // put the sample into the buffer
-        m_buffer[m_sampleIndex] = sample;
-
         // gather all the taps
         float ret = 0.0f;
         for (int i = 0; i < 7; ++i) {
@@ -119,6 +116,9 @@ struct SMultiTapReverbEffect {
 
         // move the index to the next location
         m_sampleIndex = (m_sampleIndex + 1) % m_bufferSize;
+
+        // put the sample into the buffer, with feedback
+        m_buffer[m_sampleIndex] = sample + ret * 0.5f;
 
         // return the sum of the taps
         return ret + sample;
@@ -209,4 +209,27 @@ struct SFlangeEffect {
     size_t      m_sampleIndex;
     float       m_phase;
     float       m_phaseAdvance;
+};
+
+//--------------------------------------------------------------------------------------------------
+struct SLowPassFilter {
+
+    void SetEffectParameters (float cutoffFrequency, float sampleRate) {
+        m_dt = 1.0f / sampleRate;
+        m_RC = 1.0f / (2.0f * c_pi * cutoffFrequency);
+        m_alpha = m_dt / (m_RC + m_dt);
+        m_lastRet = 0.0f;
+    }
+
+    float AddSample(float sample) {
+        float ret = m_alpha * sample + (1.0f - m_alpha) * m_lastRet;
+        m_lastRet = ret;
+        return ret;
+    }
+
+    float m_dt;
+    float m_alpha;
+    float m_RC;
+
+    float m_lastRet;
 };

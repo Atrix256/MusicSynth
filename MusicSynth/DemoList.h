@@ -19,5 +19,6 @@ DEMO(11_Reverb)
 DEMO(12_Flange)
 DEMO(13_Drum)
 DEMO(14_Ducking)
+DEMO(15_Filtering)
 
 #undef DEMO
