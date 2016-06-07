@@ -65,12 +65,13 @@ namespace Demo14_Ducking {
         sample = sample % numSamples;
 
         // calculate and apply an envelope to the start and end of the sound
+        const float c_envelopeTime = 0.005f;
         float ageInSeconds = float(sample) / float(sampleRate);
         float envelope = Envelope4Pt(
             ageInSeconds,
             0.0f, 0.0f,
-            0.1f, 1.0f,
-            music.m_lengthSeconds - 0.1f, 1.0f,
+            c_envelopeTime, 1.0f,
+            music.m_lengthSeconds - c_envelopeTime, 1.0f,
             music.m_lengthSeconds, 0.0f
         );
 

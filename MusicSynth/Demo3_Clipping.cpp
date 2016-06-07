@@ -9,8 +9,16 @@
 
 namespace Demo3_Clipping {
 
-    float g_frequency = 0.0f;
-    float g_volumeAmplifier = 1.0f;
+    float   g_frequency = 0.0f;
+    float   g_volumeAmplifier = 1.0f;
+
+    enum EVoiceState {
+        e_stopped,
+        e_wantStart,
+        e_started
+    };
+
+    EVoiceState g_voiceState = e_stopped;
 
     //--------------------------------------------------------------------------------------------------
     void OnInit() { }
@@ -19,8 +27,41 @@ namespace Demo3_Clipping {
     void OnExit() { }
 
     //--------------------------------------------------------------------------------------------------
+    float SampleAudioSample(size_t age, SWavFile& sample, float sampleRate) {
+
+        // handle the note dieing when it is done
+        size_t sampleIndex = age*sample.m_numChannels;
+        if (sampleIndex >= sample.m_numSamples) {
+            g_voiceState = e_stopped;
+            return 0.0f;
+        }
+
+        // calculate and apply an envelope to the sound samples
+        float ageInSeconds = float(age) / sampleRate;
+        float envelope = Envelope4Pt(
+            ageInSeconds,
+            0.0f, 0.0f,
+            0.1f, 1.0f,
+            sample.m_lengthSeconds - 0.1f, 1.0f,
+            sample.m_lengthSeconds, 0.0f
+        );
+
+        // return the sample value multiplied by the envelope
+        return sample.m_samples[sampleIndex] * envelope;
+    }
+
+    //--------------------------------------------------------------------------------------------------
     void GenerateAudioSamples (float *outputBuffer, size_t framesPerBuffer, size_t numChannels, float sampleRate) {
         static float phase = 0.0f;
+
+        // handle the voice starting
+        static size_t voiceStarted = 0;
+        EVoiceState voiceState = g_voiceState;
+        if (voiceState == e_wantStart) {
+            g_voiceState = e_started;
+            voiceState = e_started;
+            voiceStarted = CDemoMgr::GetSampleClock();
+        }
 
         // calculate how much our phase should change each sample
         float phaseAdvance = g_frequency / sampleRate;
@@ -29,6 +70,10 @@ namespace Demo3_Clipping {
 
             // get the sine wave amplitude for this phase (angle)
             float value = SineWave(phase) * g_volumeAmplifier;
+
+            // sample the voice if we should
+            if (voiceState == e_started)
+                value += SampleAudioSample(CDemoMgr::GetSampleClock() - voiceStarted + sample, g_sample_legend2, sampleRate) * g_volumeAmplifier;
 
             // advance the phase, making sure to stay within 0 and 1
             phase += phaseAdvance;
@@ -47,6 +92,14 @@ namespace Demo3_Clipping {
         if (!pressed)
             return;
 
+        // left alt for toggling voice
+        if (key == -92) {
+            if (g_voiceState == e_stopped)
+                g_voiceState = e_wantStart;
+            else
+                g_voiceState = e_stopped;
+        }
+
         switch (key) {
             // number row
             case '1': g_volumeAmplifier = 1.0f; break;
@@ -58,7 +111,7 @@ namespace Demo3_Clipping {
             case '7': g_volumeAmplifier = 7.0f; break;
             case '8': g_volumeAmplifier = 8.0f; break;
             case '9': g_volumeAmplifier = 9.0f; break;
-            case '0': g_volumeAmplifier = 10.0f; break;
+            case '0': g_volumeAmplifier = 20.0f; break;
 
             // QWERTY row
             case 'Q': g_frequency = NoteToFrequency(3, 0); break;
@@ -119,6 +172,7 @@ namespace Demo3_Clipping {
     void OnEnterDemo () {
         g_frequency = 0.0f;
         g_volumeAmplifier = 1.0f;
-        printf("Number keys to adjust volume and adjust clipping.\r\nLetter key to play different sine tones. Space to silence.\r\nMelody1 = ZMAM. left shift / control is super low frequency.\r\n");
+        g_voiceState = e_stopped;
+        printf("Number keys to adjust volume and adjust clipping.\r\nLetter key to play different sine tones. Space to silence.\r\nMelody1 = ZMAM. left shift / control is super low frequency.\r\nleft alt for a voice sample.\r\n");
     }
 }

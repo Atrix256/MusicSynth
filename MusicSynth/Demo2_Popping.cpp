@@ -14,6 +14,8 @@ namespace Demo2_Popping {
         e_notesPop,
         e_notesNoPop,
         e_notesSlideNoPop,
+        e_samplePop,
+        e_sampleNoPop
     };
 
     const char* ModeToString (EMode mode) {
@@ -22,6 +24,8 @@ namespace Demo2_Popping {
             case e_notesPop: return "Popping Notes";
             case e_notesNoPop: return "Notes Without Popping";
             case e_notesSlideNoPop: return "Sliding Notes";
+            case e_samplePop: return "Popping Sample";
+            case e_sampleNoPop: return "Sample Without Popping";
         }
         return "???";
     }
@@ -33,6 +37,47 @@ namespace Demo2_Popping {
 
     //--------------------------------------------------------------------------------------------------
     void OnExit() { }
+
+    //--------------------------------------------------------------------------------------------------
+    void SampleAudioSamples(float *outputBuffer, size_t framesPerBuffer, size_t numChannels, float sampleRate, size_t &baseIndex, bool pop) {
+
+        SWavFile& sound = g_sample_ting;
+
+        // fill the buffer
+        for (size_t sample = 0; sample < framesPerBuffer; ++sample, outputBuffer += numChannels, ++baseIndex) {
+
+            // handle the sound dieing when it is done
+            size_t sampleIndex = baseIndex*sound.m_numChannels;
+            if (sampleIndex >= sound.m_numSamples) {
+                g_mode = e_silence;
+                for (size_t channel = 0; channel < numChannels; ++channel)
+                    outputBuffer[channel] = 0.0f;
+                return;
+            }
+
+            // calculate and apply an envelope to the sound samples
+            float envelope = 1.0f;
+            if (!pop) {
+                const float c_envelopeTime = 0.005f;
+                float ageInSeconds = float(baseIndex) / sampleRate;
+                envelope = Envelope4Pt(
+                    ageInSeconds,
+                    0.0f, 0.0f,
+                    c_envelopeTime, 1.0f,
+                    sound.m_lengthSeconds - c_envelopeTime, 1.0f,
+                    sound.m_lengthSeconds, 0.0f
+                );
+            }
+
+            // return the sample value multiplied by the envelope
+            float value = sound.m_samples[sampleIndex] * envelope;
+
+            // copy the value to all audio channels
+            for (size_t channel = 0; channel < numChannels; ++channel)
+                outputBuffer[channel] = value;
+        }
+
+    }
 
     //--------------------------------------------------------------------------------------------------
     void GenerateAudioSamples (float *outputBuffer, size_t framesPerBuffer, size_t numChannels, float sampleRate) {
@@ -48,6 +93,12 @@ namespace Demo2_Popping {
             mode = newMode;
             phase = 0.0f;
             sampleIndex = 0;
+        }
+
+        // sample our audio samples if we should
+        if (mode == e_samplePop || mode == e_sampleNoPop) {
+            SampleAudioSamples(outputBuffer, framesPerBuffer, numChannels, sampleRate, sampleIndex, mode == e_samplePop);
+            return;
         }
 
         // calculate how many audio samples happen in 1/4 of a second
@@ -184,12 +235,14 @@ namespace Demo2_Popping {
             case '1': g_mode = e_notesPop; ReportParams(); break;
             case '2': g_mode = e_notesNoPop; ReportParams(); break;
             case '3': g_mode = e_notesSlideNoPop; ReportParams(); break;
+            case '4': g_mode = e_samplePop; ReportParams(); break;
+            case '5': g_mode = e_sampleNoPop; ReportParams(); break;
         }
     }
 
     //--------------------------------------------------------------------------------------------------
     void OnEnterDemo () {
         g_mode = e_silence;
-        printf("1 = notes with pop.\r\n2 = notes without pop.\r\n3 = note slide without pop.\r\n");
+        printf("1 = notes with pop.\r\n2 = notes without pop.\r\n3 = note slide without pop.\r\n4 = sample with pop\r\n5 = sample without pop\r\n");
     }
 }

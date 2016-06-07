@@ -84,6 +84,7 @@
     <ClCompile Include="DemoMgr.cpp" />
     <ClCompile Include="Demo1_Sine.cpp" />
     <ClCompile Include="Demo11_Reverb.cpp" />
+    <ClCompile Include="Demo_Additive.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="Samples.cpp" />
     <ClCompile Include="WavFile.cpp" />

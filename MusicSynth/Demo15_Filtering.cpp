@@ -389,13 +389,11 @@ TODO:
 * make some simple repeating song that you can hear with and without filtering, showing that filtering on LFO can make it sound more interesting
 * make a mode in lpf / hpf cycling that makes them filter on a sine wave
 
-
-* make clipping have a sound file you can play
 * make popping have a sound file you can play (beginning and end pop)
+ * kick isn't good enough
 
-* do an additive synth
- * http://www.soundonsound.com/sos/jun00/articles/synthsec.htm
+* remove the numbers from all the demos
 
-* work additive synth into presentation.
+* work additive synth into presentation after you make a demo.
 
 */

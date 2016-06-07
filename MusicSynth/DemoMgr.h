@@ -65,7 +65,7 @@ public:
 
         // pass this call onto the current demo
         switch (s_currentDemo) {
-        #define DEMO(name) case e_demo##name: printf( #name "\r\n"); Demo##name::OnEnterDemo(); break;
+            #define DEMO(name) case e_demo##name: printf( "Demo %i: " #name "\r\n", e_demo##name+1); Demo##name::OnEnterDemo(); break;
             #include "DemoList.h"
         }
 

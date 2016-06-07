@@ -72,6 +72,9 @@
     <ClCompile Include="Demo15_Filtering.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Demo_Additive.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DemoMgr.h">
