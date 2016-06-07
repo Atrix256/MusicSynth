@@ -181,17 +181,50 @@ namespace DemoFiltering {
     //--------------------------------------------------------------------------------------------------
     void GenerateAudioSamples (float *outputBuffer, size_t framesPerBuffer, size_t numChannels, float sampleRate) {
 
-        // update our effect params if needed
-        static SLowPassFilter lowPassFilter;
+        // update our low pass filter
+        static SBiQuad lowPassFilter1;
+        static SBiQuad lowPassFilter2;
         static EEffect lastLPF = e_none;
         EEffect currentLPF = g_lpf;
         if (currentLPF != lastLPF) {
             lastLPF = currentLPF;
             switch (currentLPF) {
                 case e_none: break;
-                case e_small: lowPassFilter.SetEffectParameters(440.0f,sampleRate); break;
-                case e_medium: lowPassFilter.SetEffectParameters(220.0f, sampleRate); break;
-                case e_large: lowPassFilter.SetEffectParameters(55.0f, sampleRate); break;
+                case e_small: 
+                    lowPassFilter1.SetEffectParams(SBiQuad::EType::e_lowPass, 1760.0f, sampleRate, 1.0f, 1.0f);
+                    lowPassFilter2.SetEffectParams(SBiQuad::EType::e_lowPass, 1760.0f, sampleRate, 1.0f, 1.0f);
+                    break;
+                case e_medium:
+                    lowPassFilter1.SetEffectParams(SBiQuad::EType::e_lowPass, 880.0f, sampleRate, 1.0f, 1.0f);
+                    lowPassFilter2.SetEffectParams(SBiQuad::EType::e_lowPass, 880.0f, sampleRate, 1.0f, 1.0f);
+                    break;
+                case e_large:
+                    lowPassFilter1.SetEffectParams(SBiQuad::EType::e_lowPass, 220.0f, sampleRate, 1.0f, 1.0f);
+                    lowPassFilter2.SetEffectParams(SBiQuad::EType::e_lowPass, 220.0f, sampleRate, 1.0f, 1.0f);
+                    break;
+            }
+        }
+
+        static SBiQuad highPassFilter1;
+        static SBiQuad highPassFilter2;
+        static EEffect lastHPF = e_none;
+        EEffect currentHPF = g_hpf;
+        if (currentHPF != lastHPF) {
+            lastHPF = currentHPF;
+            switch (currentHPF) {
+                case e_none: break;
+                case e_small: 
+                    highPassFilter1.SetEffectParams(SBiQuad::EType::e_highPass, 220.0f, sampleRate, 1.0f, 1.0f);
+                    highPassFilter2.SetEffectParams(SBiQuad::EType::e_highPass, 220.0f, sampleRate, 1.0f, 1.0f);
+                    break;
+                case e_medium:
+                    highPassFilter1.SetEffectParams(SBiQuad::EType::e_highPass, 880.0f, sampleRate, 1.0f, 1.0f);
+                    highPassFilter2.SetEffectParams(SBiQuad::EType::e_highPass, 880.0f, sampleRate, 1.0f, 1.0f);
+                    break;
+                case e_large:
+                    highPassFilter1.SetEffectParams(SBiQuad::EType::e_highPass, 1760.0f, sampleRate, 1.0f, 1.0f);
+                    highPassFilter2.SetEffectParams(SBiQuad::EType::e_highPass, 1760.0f, sampleRate, 1.0f, 1.0f);
+                    break;
             }
         }
 
@@ -211,9 +244,17 @@ namespace DemoFiltering {
                 }
             );
 
-            // apply lpf and hpf if we should
-            if (currentLPF != e_none)
-                value = lowPassFilter.AddSample(value);
+            // apply lpf
+            if (currentLPF != e_none) {
+                value = lowPassFilter1.AddSample(value);
+                value = lowPassFilter2.AddSample(value);
+            }
+
+            // apply hpf
+            if (currentHPF != e_none) {
+                value = highPassFilter1.AddSample(value);
+                value = highPassFilter2.AddSample(value);
+            }
 
             // copy the value to all audio channels
             for (size_t channel = 0; channel < numChannels; ++channel)
@@ -389,7 +430,9 @@ TODO:
 * make some simple repeating song that you can hear with and without filtering, showing that filtering on LFO can make it sound more interesting
 * make a mode in lpf / hpf cycling that makes them filter on a sine wave
 
-* make popping have a sound file you can play (beginning and end pop)
+* make a button to toggle an annoying buzz (vuvuzella!) and filter it out while preserving the original signal
+
+* make popping demo have a sound file you can play (beginning and end pop)
  * kick isn't good enough
 
 */

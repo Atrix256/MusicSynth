@@ -7,6 +7,7 @@
 #pragma once
 
 #include <memory>
+#include "AudioUtils.h"
 
 // effects available
 struct SDelayEffect;
@@ -212,24 +213,167 @@ struct SFlangeEffect {
 };
 
 //--------------------------------------------------------------------------------------------------
-struct SLowPassFilter {
+// Generic 2nd order frequency filter
+// https://en.wikipedia.org/wiki/Digital_biquad_filter
+// http://www.earlevel.com/main/2013/10/13/biquad-calculator-v2/
+// http://www.earlevel.com/main/2003/02/28/biquads/
+// http://www.earlevel.com/main/2011/01/02/biquad-formulas/
+//
+struct SBiQuad {
 
-    void SetEffectParameters (float cutoffFrequency, float sampleRate) {
-        m_dt = 1.0f / sampleRate;
-        m_RC = 1.0f / (2.0f * c_pi * cutoffFrequency);
-        m_alpha = m_dt / (m_RC + m_dt);
-        m_lastRet = 0.0f;
+    enum class EType {
+        e_lowPass,
+        e_highPass,
+        e_bandPass,
+        e_notch,
+        e_peak,
+        e_lowShelf,
+        e_highShelf
+    };
+
+    SBiQuad() {
+        m_a0 = m_a1 = m_a2 = 0.0f;
+        m_b1 = m_b2 = 0.0f;
+        m_xn1 = m_xn2 = 0.0f;
+        m_yn1 = m_yn2 = 0.0f;
     }
 
-    float AddSample(float sample) {
-        float ret = m_alpha * sample + (1.0f - m_alpha) * m_lastRet;
-        m_lastRet = ret;
-        return ret;
+    // adpated from http://www.earlevel.com/main/2011/01/02/biquad-formulas/
+    void SetEffectParams (EType type, float cutoffFrequency, float sampleRate, float Q, float peakGain) {
+
+        // initialize our input and output parameters
+        m_xn1 = m_xn2 = 0.0f;
+        m_yn1 = m_yn2 = 0.0f;
+
+        // calculate biquad coefficients
+        float V = std::powf(10.0f, std::fabs(peakGain) / 20.0f);
+        float K = std::tanf(c_pi * cutoffFrequency / sampleRate);
+        switch (type) {
+            case EType::e_lowPass: {
+                float norm = 1 / (1 + K / Q + K * K);
+                m_a0 = K * K * norm;
+                m_a1 = 2.0f * m_a0;
+                m_a2 = m_a0;
+                m_b1 = 2.0f * (K * K - 1) * norm;
+                m_b2 = (1.0f - K / Q + K * K) * norm;
+                break;
+            }
+            case EType::e_highPass: {
+                float norm = 1.0f / (1.0f + K / Q + K * K);
+                m_a0 = 1.0f * norm;
+                m_a1 = -2.0f * m_a0;
+                m_a2 = m_a0;
+                m_b1 = 2.0f * (K * K - 1.0f) * norm;
+                m_b2 = (1.0f - K / Q + K * K) * norm;
+                break;
+            }        
+            case EType::e_bandPass: {
+                float norm = 1.0f / (1.0f + K / Q + K * K);
+                m_a0 = K / Q * norm;
+                m_a1 = 0.0f;
+                m_a2 = -m_a0;
+                m_b1 = 2.0f * (K * K - 1.0f) * norm;
+                m_b2 = (1.0f - K / Q + K * K) * norm;
+                break;
+            }
+            case EType::e_notch: {
+                float norm = 1 / (1 + K / Q + K * K);
+                m_a0 = (1 + K * K) * norm;
+                m_a1 = 2 * (K * K - 1) * norm;
+                m_a2 = m_a0;
+                m_b1 = m_a1;
+                m_b2 = (1 - K / Q + K * K) * norm;
+                break;
+            }
+            case EType::e_peak: {
+                if (peakGain >= 0.0f) {    // boost
+                    float norm = 1.0f / (1.0f + 1.0f / Q * K + K * K);
+                    m_a0 = (1.0f + V / Q * K + K * K) * norm;
+                    m_a1 = 2.0f * (K * K - 1) * norm;
+                    m_a2 = (1.0f - V / Q * K + K * K) * norm;
+                    m_b1 = m_a1;
+                    m_b2 = (1.0f - 1.0f / Q * K + K * K) * norm;
+                }
+                else {    // cut
+                    float norm = 1.0f / (1.0f + V / Q * K + K * K);
+                    m_a0 = (1.0f + 1.0f / Q * K + K * K) * norm;
+                    m_a1 = 2.0f * (K * K - 1) * norm;
+                    m_a2 = (1.0f - 1.0f / Q * K + K * K) * norm;
+                    m_b1 = m_a1;
+                    m_b2 = (1.0f - V / Q * K + K * K) * norm;
+                }
+                break;
+            }
+            case EType::e_lowShelf: {
+                if (peakGain >= 0.0f) {    // boost
+                    float norm = 1.0f / (1.0f + std::sqrtf(2.0f) * K + K * K);
+                    m_a0 = (1.0f + std::sqrtf(2.0f * V) * K + V * K * K) * norm;
+                    m_a1 = 2.0f * (V * K * K - 1.0f) * norm;
+                    m_a2 = (1.0f - std::sqrtf(2.0f * V) * K + V * K * K) * norm;
+                    m_b1 = 2.0f * (K * K - 1.0f) * norm;
+                    m_b2 = (1.0f - std::sqrtf(2.0f) * K + K * K) * norm;
+                }
+                else {    // cut
+                    float norm = 1.0f / (1.0f + std::sqrtf(2 * V) * K + V * K * K);
+                    m_a0 = (1.0f + std::sqrtf(2.0f) * K + K * K) * norm;
+                    m_a1 = 2.0f * (K * K - 1.0f) * norm;
+                    m_a2 = (1.0f - std::sqrtf(2.0f) * K + K * K) * norm;
+                    m_b1 = 2.0f * (V * K * K - 1.0f) * norm;
+                    m_b2 = (1.0f - std::sqrtf(2 * V) * K + V * K * K) * norm;
+                }
+                break;
+            }
+            case EType::e_highShelf: {
+                if (peakGain >= 0.0f) {    // boost
+                    float norm = 1.0f / (1.0f + std::sqrtf(2.0f) * K + K * K);
+                    m_a0 = (V + std::sqrtf(2 * V) * K + K * K) * norm;
+                    m_a1 = 2.0f * (K * K - V) * norm;
+                    m_a2 = (V - std::sqrtf(2 * V) * K + K * K) * norm;
+                    m_b1 = 2.0f * (K * K - 1.0f) * norm;
+                    m_b2 = (1.0f - std::sqrtf(2.0f) * K + K * K) * norm;
+                }
+                else {    // cut
+                    float norm = 1.0f / (V + std::sqrtf(2.0f * V) * K + K * K);
+                    m_a0 = (1.0f + std::sqrtf(2.0f) * K + K * K) * norm;
+                    m_a1 = 2.0f * (K * K - 1) * norm;
+                    m_a2 = (1.0f - std::sqrtf(2.0f) * K + K * K) * norm;
+                    m_b1 = 2.0f * (K * K - V) * norm;
+                    m_b2 = (V - std::sqrtf(2.0f * V) * K + K * K) * norm;
+                }
+                break;
+            }
+        }
     }
 
-    float m_dt;
-    float m_alpha;
-    float m_RC;
+    float AddSample (float x) {
 
-    float m_lastRet;
+        // calculate the output value
+        // y[n] = a0*x[n] + a1*x[n - 1] + a2*x[n - 2] – b1*y[n - 1] – b2*y[n - 2]
+        float y = m_a0*x + m_a1 * m_xn1 + m_a2*m_xn2 - m_b1*m_yn1 - m_b2*m_yn2;
+
+        // shift down previous input and output samples
+        m_yn2 = m_yn1;
+        m_yn1 = y;
+        m_xn2 = m_xn1;
+        m_xn1 = x;
+
+        // return the output value
+        return y;
+    }
+
+private:
+    // biquad coefficients
+    float m_a0;
+    float m_a1;
+    float m_a2;
+    float m_b1;
+    float m_b2;
+
+    // previous input samples
+    float m_xn1;
+    float m_xn2;
+
+    // previous output samples
+    float m_yn1;
+    float m_yn2;
 };

@@ -1,6 +1,7 @@
 Presentation is on 7/1/16
 
 
+! make a stereo demo (or test) to see if that room does it ok.
 
 ? maybe have free play at menu / demo 0? easy to get to.
  * space = cymbal

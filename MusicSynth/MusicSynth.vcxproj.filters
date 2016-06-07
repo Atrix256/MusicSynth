@@ -13,12 +13,12 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Source Files\Demos">
+      <UniqueIdentifier>{f0cb92a7-35f2-4553-96b3-8a4fa3198614}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="DemoMgr.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="WavFile.cpp">
@@ -27,62 +27,59 @@
     <ClCompile Include="Samples.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="DemoSine.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="DemoPopping.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="DemoClipping.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="DemoMixing.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="DemoEnvelopes.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="DemoWaveForms.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="DemoAdditive.cpp">
+      <Filter>Source Files\Demos</Filter>
     </ClCompile>
     <ClCompile Include="DemoBLWaveForms.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Demos</Filter>
     </ClCompile>
-    <ClCompile Include="DemoTremVib.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="DemoFMSynth.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="DemoClipping.cpp">
+      <Filter>Source Files\Demos</Filter>
     </ClCompile>
     <ClCompile Include="DemoDelay.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="DemoReverb.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="DemoFlange.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Demos</Filter>
     </ClCompile>
     <ClCompile Include="DemoDrum.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Demos</Filter>
     </ClCompile>
     <ClCompile Include="DemoDucking.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Demos</Filter>
+    </ClCompile>
+    <ClCompile Include="DemoEnvelopes.cpp">
+      <Filter>Source Files\Demos</Filter>
     </ClCompile>
     <ClCompile Include="DemoFiltering.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Demos</Filter>
     </ClCompile>
-    <ClCompile Include="DemoAdditive.cpp">
+    <ClCompile Include="DemoFlange.cpp">
+      <Filter>Source Files\Demos</Filter>
+    </ClCompile>
+    <ClCompile Include="DemoFMSynth.cpp">
+      <Filter>Source Files\Demos</Filter>
+    </ClCompile>
+    <ClCompile Include="DemoMixing.cpp">
+      <Filter>Source Files\Demos</Filter>
+    </ClCompile>
+    <ClCompile Include="DemoPopping.cpp">
+      <Filter>Source Files\Demos</Filter>
+    </ClCompile>
+    <ClCompile Include="DemoReverb.cpp">
+      <Filter>Source Files\Demos</Filter>
+    </ClCompile>
+    <ClCompile Include="DemoSine.cpp">
+      <Filter>Source Files\Demos</Filter>
+    </ClCompile>
+    <ClCompile Include="DemoTremVib.cpp">
+      <Filter>Source Files\Demos</Filter>
+    </ClCompile>
+    <ClCompile Include="DemoWaveForms.cpp">
+      <Filter>Source Files\Demos</Filter>
+    </ClCompile>
+    <ClCompile Include="DemoMgr.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="DemoMgr.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="DemoList.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="AudioUtils.h">
       <Filter>Source Files</Filter>
     </ClInclude>
@@ -96,6 +93,12 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="SampleList.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DemoList.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DemoMgr.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
