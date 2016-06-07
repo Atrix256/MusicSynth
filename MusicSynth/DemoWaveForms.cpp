@@ -1,5 +1,5 @@
 //--------------------------------------------------------------------------------------------------
-// Demo7_BLWaveForms.cpp
+// DemoWaveForms.cpp
 //
 // Logic for the demo of the same name
 //
@@ -8,7 +8,7 @@
 #include "DemoMgr.h"
 #include <algorithm>
 
-namespace Demo7_BLWaveForms {
+namespace DemoWaveForms {
 
     enum EWaveForm {
         e_waveSine,
@@ -20,9 +20,9 @@ namespace Demo7_BLWaveForms {
     const char* WaveFormToString (EWaveForm waveForm) {
         switch (waveForm) {
             case e_waveSine: return "Sine";
-            case e_waveSaw: return "Bandlimited Saw";
-            case e_waveSquare: return "Bandlimited Square";
-            case e_waveTriangle: return "Bandlimited Triangle";
+            case e_waveSaw: return "Saw";
+            case e_waveSquare: return "Square";
+            case e_waveTriangle: return "Triangle";
         }
         return "???";
     }
@@ -109,8 +109,7 @@ namespace Demo7_BLWaveForms {
         ++note.m_age;
 
         // generate the envelope value for our note
-        // decrease note volume a bit, because the volume adjustments don't seem to be quite enough
-        float envelope = GenerateEnvelope(note, ageInSeconds, sampleRate) * 0.8f;
+        float envelope = GenerateEnvelope(note, ageInSeconds, sampleRate);
 
         // generate the audio sample value for the current time.
         // Note that it is ok that we are basing audio samples on age instead of phase, because the
@@ -118,9 +117,9 @@ namespace Demo7_BLWaveForms {
         float phase = std::fmodf(ageInSeconds * note.m_frequency, 1.0f);
         switch (note.m_waveForm) {
             case e_waveSine:    return SineWave(phase) * envelope;
-            case e_waveSaw:     return SawWaveBandLimited(phase, 10) * envelope;
-            case e_waveSquare:  return SquareWaveBandLimited(phase, 10) * envelope;
-            case e_waveTriangle:return TriangleWaveBandLimited(phase, 10) * envelope;
+            case e_waveSaw:     return SawWave(phase) * envelope;
+            case e_waveSquare:  return SquareWave(phase) * envelope;
+            case e_waveTriangle:return TriangleWave(phase) * envelope;
         }
 
         return 0.0f;
@@ -271,9 +270,9 @@ namespace Demo7_BLWaveForms {
         g_currentWaveForm = e_waveSine;
         printf("Letter keys to play notes.\r\nleft shift / control is super low frequency.\r\n");
         printf("1 = Sine\r\n");
-        printf("2 = Band Limited Saw\r\n");
-        printf("3 = Band Limited Square\r\n");
-        printf("4 = Band Limited Triangle\r\n");
+        printf("2 = Saw\r\n");
+        printf("3 = Square\r\n");
+        printf("4 = Triangle\r\n");
 
         // clear all the notes out
         std::lock_guard<std::mutex> guard(g_notesMutex);

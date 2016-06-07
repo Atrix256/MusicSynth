@@ -86,7 +86,7 @@ public:
         // also apply clipping.
         bool clip = s_clippingOn;
         static float lastVolumeMultiplier = 1.0;
-        float volumeMultiplier = dBToAmplitude((1.0f - s_volumeMultiplier) * -60.0f);
+        float volumeMultiplier = dBToAmplitude((1.0f - float(s_volumeMultiplier)/10.0f) * -60.0f);
         for (size_t sample = 0; sample < framesPerBuffer; ++sample, outputBuffer += numChannels) {
             // lerp the volume change across the buffer
             float percent = float(sample) / float(framesPerBuffer);
@@ -140,20 +140,20 @@ public:
             // when up arrow pressed, increase volume
             case 38: {
                 if (pressed) {
-                    s_volumeMultiplier += 0.1f;
-                    if (s_volumeMultiplier > 1.0f)
-                        s_volumeMultiplier = 1.0f;
-                    printf("Master Volume = %i%%\r\n", size_t(s_volumeMultiplier*100.0f));
+                    s_volumeMultiplier++;
+                    if (s_volumeMultiplier > 10)
+                        s_volumeMultiplier = 10;
+                    printf("Master Volume = %i%%\r\n", s_volumeMultiplier * 10);
                 }
                 return;
             }
             // when down arrow pressed, decrease volume
             case 40: {
                 if (pressed) {
-                    s_volumeMultiplier -= 0.1f;
-                    if (s_volumeMultiplier < 0.0f)
-                        s_volumeMultiplier = 0.0f;
-                    printf("Master Volume = %i%%\r\n", size_t(s_volumeMultiplier*100.0f));
+                    s_volumeMultiplier--;
+                    if (s_volumeMultiplier < 0)
+                        s_volumeMultiplier = 0;
+                    printf("Master Volume = %i%%\r\n", s_volumeMultiplier * 10);
                 }
                 return;
             }
@@ -235,7 +235,7 @@ private:
 
     static EDemo    s_currentDemo;
     static bool     s_exit;
-    static float    s_volumeMultiplier;
+    static int      s_volumeMultiplier;
     static float    s_lastVolumeMultiplier;
     static bool     s_clippingOn;
     static FILE*    s_recordingWavFile;

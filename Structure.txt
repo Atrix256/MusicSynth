@@ -1,8 +1,6 @@
 Presentation is on 7/1/16
 
-* explain how to calculate the frequency of notes, and show some notes & frequencies in a table
 
-* explain wet vs dry?
 
 ? maybe have free play at menu / demo 0? easy to get to.
  * space = cymbal
@@ -14,6 +12,7 @@ Presentation is on 7/1/16
 
 ? lament of tim curry may make good intro music? play it looping
  * or maybe some looping mellow house music clip kinda thing?
+ * maybe tim curry without the intro and outro
 
 ! code that can be used for offline or real time both?
  * maybe modes should be:
@@ -24,8 +23,6 @@ Presentation is on 7/1/16
  * maybe just a quick example of how to write a wave file?
   * or point to blog that explains how to do it
 
-! note that much like audio samples, it's the difference in notes that's important.
- ? could show an example.  same sound, shifted a few notes over.
 
 ! make the music that brings it all together?
  * maybe make the music as we go? i dunno...
@@ -59,13 +56,24 @@ Presentation Outline:
    * x axis = sample rate. samples per second.
    * y axis = bit depth. bits per sample.
    * may also have multiple channels (like, stereo) data interleaved.
+   * an uncompressed wav file is literally just a header, and then audio samples
+  * decibels vs amplitude and perception of loudness?
+
+--2.5--
+ * what is a note? octave?
+ * explain how to calculate the frequency of notes, and show some notes & frequencies in a table
+ * note that other music styles (asian, middle eastern) have different systems.  it "sounds" right to us, but only because it's what we were taught.
 
 --3--
  * sine wave = gently changing up and down.  all audio data is made of sine waves.
  * more sine waves per second = higher frequency, fewer sine waves per second = lower frequency.
   * show sine tones at diff frequencies
   * demo: press buttons to change frequencies from low to high
-  * DEMO = 1_Sine
+  * DEMO = Sine
+ * like audio data, it's the difference between notes that is important not the notes themselves.
+ * midi devices are not that hard to get working, but using QWERTY
+ ! note that keyboards are bad at pressing multiple keys at once.
+  * keyboardsareevil.com
 
 --4--
  * Note sliding and popping: free spinning oscilators vs not.  audio needs to be smooth!
@@ -75,14 +83,14 @@ Presentation Outline:
   * show the fix: free spinning oscilator
   * show note sliding
   * demo: let people hear it with popping and without.
-  * DEMO = 2_Popping
+  * DEMO = Popping
 
 --5--
  * clipping: when things get too high or low, it clips then, making distortion.
   * show clipped sine tones at different volumes
   * sometimes desired though.  Electric guitar distortion takes it's roots from this for instance.
   * demo: play some clipped notes.  adjust volume to make more or less clipping?
-  * DEMO = 3_Clipping
+  * DEMO = Clipping
   ! Note: sounds "8 bit" cause the taller a sine wave becomes, the more "square wave" it becomes. old systems did square waves cause they are fast to compute!
 
 --6--
@@ -94,19 +102,19 @@ Presentation Outline:
   * Note: turn down volume a bit to keep from clipping. turn volume up to max, show how you can cause clipping.
   * Note: can also kill all but last 3 or 4 notes played.
   * NOTE: this clipping is done 100% in my software.  I'm not maxing out any speakers or anything. no damage
-  * DEMO = 4_Mixing
+  * DEMO = Mixing
 
 --7--
  * Envelopes
   * show a few examples
   * demo: demo a few examples
-  * DEMO = 5_Envelopes
+  * DEMO = Envelopes
 
 --8--
  * Common wave forms
   * show square, saw, triangle and sine
   * demo: each wave form.  point out how similar sine and triangle are.  triangle was used because sine was too costly to compute.
- * DEMO = 6_WaveForms
+ * DEMO = WaveForms
 
 --9--
  * Aliasing
@@ -114,7 +122,14 @@ Presentation Outline:
   * bandlimited wave forms (w/ equations?)
   * mention additive synthesis being a way of building up a sound from nothing by adding things together.
   * demo: bandlimited vs not wave forms.
- * DEMO = 7_BLWaveForms
+ * DEMO = BLWaveForms
+
+--9.5--
+ * Additive Synth
+ * can analyze a sound to see what frequencies are present, at which volumes, over time.
+ * pick the N most prominent frequencies, and play them, makign envelopes that match the real sound.
+ * instead of analyzing you can also just throw them together.
+ * DEMO = Additive
 
 --10--
  * Tremolo & Vibrato
@@ -122,7 +137,7 @@ Presentation Outline:
   * Vibrato: modify frequency on a low frequency sine wave
   * (modular synth = plug anything into anything else, so like, you could plug a saw wave into vibrato etc)
   * demo: some notes with vibrato, some notes with tremolo
- * DEMO = 8_TremVib
+ * DEMO = TremVib
  * note: The effects have 2 params: frequency and depth. tremolo depth = how long and high it makes it. vibrato depth = how much higher or lower the frequency gets.
  * note: i have them on a sine wave (LFO - low frequency oscilator), but you could put the effects on other wave forms, even have some other sound controlling the effect!
 
@@ -134,13 +149,14 @@ Presentation Outline:
   * show: book about it, talk about complexities
   * demo: play some FM synth notes
   * great read: http://the-all.org/tx81z/fm_overview.html (get some notes there, like what increasing speed vs depth does)
- * DEMO = 9_FMSynth
+ * DEMO = FMSynth
 
 --12--
  * Delay (echo)
   * talk about having a buffer of the right number of samples with some feedback volume.  Circular buffer.
   * demo: play some notes that are aligned to timing, and some that aren't.
- * DEMO = 10_Delay
+ * mention wet vs dry. should demo let you adjust wet vs dry?
+ * DEMO = Delay
 
 --13--
  * Reverb
@@ -148,14 +164,14 @@ Presentation Outline:
   * demo: play some sweet sweet notes with multitap reverb
   * could play multitap next to convolution reverb to show difference in quality
  ! note: multitap is aproximation of convolution. more taps = closer to convolution
- * Demo = 11_Reverb
+ * Demo = Reverb
 
 --14--
  * Flange
   * explain origins.  explain how to simulate.  talk about sub sample interpolation.  linear, cubic hermite, sync, etc.
   * demo: wave forms with flange.
  ! note: the sauce = "reverb + flange"
- * Demo = 12_Flange
+ * Demo = Flange
 
 --15--
  * Basic Drum
@@ -164,14 +180,14 @@ Presentation Outline:
   * mention you could use sound clips
  ! note: using sound clips (samples of actual drums) is easy and gives good results.  Synthing drums is more work.
  ! http://blog.demofox.org/2015/03/14/diy-synth-basic-drum/
- * Demo = 13_Drum
+ * Demo = Drum
 
 --16--
  * cymbal from static?
   * a 5th common wave form: "noise"
   * show how to use an envelope to make the noise meaningful
   * demo: play some drums and symbols
- * Demo = 13_Drum, but use space bar.
+ * Demo = Drum, but use space bar.
 
 --17--
  * Automatic volume adjustments
@@ -183,7 +199,7 @@ Presentation Outline:
   * mention battlefield's HDR audio system
   * we aren't doing automatic. we made an envelope to go with the deep drum to make it sound more powerful
  * demo: a button to toggle a melody.  a button to toggle ducking melody based on drum volume or not.
- * Demo = 14_Ducking
+ * Demo = Ducking
 
 --18--
  ? space bar = cymbal, other things = drum notes. press 1 to toggle an auto melody?
@@ -213,6 +229,8 @@ Presentation Outline:
   * shadertoy -> lets you do audio
   * my blog -> more audio synth info there now and future content
   * where to get code from presentation -> https://github.com/Atrix256/MusicSynth
+ * using audio synth for smooth terrain generation.
+ * also dsp for other things.  low pass filter movement data to smooth it out.
 
 -- stretch topics
  * mention 303 and 707 with a sound clip?
@@ -220,16 +238,11 @@ Presentation Outline:
  * 8 bit music: I'm not an expert, but the sound isn't from being "8 bit".  low sample rate starts to sound like it, but more in faked chords by playing very short notes in a row?
  * arpegiators
  * automatic note timing fixing (to get timing more correct)
- * decibels vs amplitude
  * converting timing (like in 4/4, im on note 3, bar 5) to be a sample number
  * stereo sounds or higher.
   * effects different per ear.
   * ping pong echo between left and right ear.
- * using audio synth for smooth terrain generation.
  * wave file = header, and then just audio samples.
- * yes, can do midi devices. portmidi is a decent library for that. can get velocity so harder presses = louder notes, etc!
-! note that keyboards are bad at pressing multiple keys at once.
- * keyboardsareevil.com
 
 ==============================================
 Topics Brainstorm:

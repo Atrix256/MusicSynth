@@ -1,45 +1,21 @@
 //--------------------------------------------------------------------------------------------------
-// Demo15_Filtering.cpp
+// DemoBLWaveForms.cpp
 //
 // Logic for the demo of the same name
 //
 //--------------------------------------------------------------------------------------------------
 
 #include "DemoMgr.h"
-#include "AudioEffects.h"
 #include <algorithm>
-#include "Samples.h"
 
-namespace Demo15_Filtering {
+namespace DemoBLWaveForms {
 
     enum EWaveForm {
         e_waveSine,
         e_waveSaw,
         e_waveSquare,
-        e_waveTriangle,
-
-        e_sampleCymbals,
-        e_sampleVoice,
+        e_waveTriangle
     };
-
-    enum EEffect {
-        e_none,
-        e_small,
-        e_medium,
-        e_large,
-
-        e_effectCount
-    };
-
-    const char* EffectToString (EEffect effect) {
-        switch (effect) {
-            case e_none: return "none";
-            case e_small: return "small";
-            case e_medium: return "medium";
-            case e_large: return "large";
-        }
-        return "??";
-    }
 
     const char* WaveFormToString (EWaveForm waveForm) {
         switch (waveForm) {
@@ -71,9 +47,6 @@ namespace Demo15_Filtering {
     std::vector<SNote>  g_notes;
     std::mutex          g_notesMutex;
     EWaveForm           g_currentWaveForm;
-
-    EEffect             g_lpf;
-    EEffect             g_hpf;
 
     //--------------------------------------------------------------------------------------------------
     void OnInit() { }
@@ -129,29 +102,6 @@ namespace Demo15_Filtering {
     }
 
     //--------------------------------------------------------------------------------------------------
-    inline float SampleAudioSample(SNote& note, SWavFile& sample, float ageInSeconds) {
-
-        // handle the note dieing when it is done
-        size_t sampleIndex = note.m_age*sample.m_numChannels;
-        if (sampleIndex >= sample.m_numSamples) {
-            note.m_dead = true;
-            return 0.0f;
-        }
-
-        // calculate and apply an envelope to the sound samples
-        float envelope = Envelope4Pt(
-            ageInSeconds,
-            0.0f, 0.0f,
-            0.1f, 1.0f,
-            sample.m_lengthSeconds - 0.1f, 1.0f,
-            sample.m_lengthSeconds, 0.0f
-        );
-
-        // return the sample value multiplied by the envelope
-        return sample.m_samples[sampleIndex] * envelope;
-    }
-
-    //--------------------------------------------------------------------------------------------------
     inline float GenerateNoteSample (SNote& note, float sampleRate) {
 
         // calculate our age in seconds and advance our age in samples, by 1 sample
@@ -167,12 +117,10 @@ namespace Demo15_Filtering {
         // frequency never changes and we envelope the front and back to avoid popping.
         float phase = std::fmodf(ageInSeconds * note.m_frequency, 1.0f);
         switch (note.m_waveForm) {
-            case e_waveSine:        return SineWave(phase) * envelope;
-            case e_waveSaw:         return SawWaveBandLimited(phase, 10) * envelope;
-            case e_waveSquare:      return SquareWaveBandLimited(phase, 10) * envelope;
-            case e_waveTriangle:    return TriangleWaveBandLimited(phase, 10) * envelope;
-            case e_sampleCymbals:   return SampleAudioSample(note, g_sample_cymbal, ageInSeconds);
-            case e_sampleVoice:     return SampleAudioSample(note, g_sample_legend1, ageInSeconds);
+            case e_waveSine:    return SineWave(phase) * envelope;
+            case e_waveSaw:     return SawWaveBandLimited(phase, 10) * envelope;
+            case e_waveSquare:  return SquareWaveBandLimited(phase, 10) * envelope;
+            case e_waveTriangle:return TriangleWaveBandLimited(phase, 10) * envelope;
         }
 
         return 0.0f;
@@ -180,20 +128,6 @@ namespace Demo15_Filtering {
 
     //--------------------------------------------------------------------------------------------------
     void GenerateAudioSamples (float *outputBuffer, size_t framesPerBuffer, size_t numChannels, float sampleRate) {
-
-        // update our effect params if needed
-        static SLowPassFilter lowPassFilter;
-        static EEffect lastLPF = e_none;
-        EEffect currentLPF = g_lpf;
-        if (currentLPF != lastLPF) {
-            lastLPF = currentLPF;
-            switch (currentLPF) {
-                case e_none: break;
-                case e_small: lowPassFilter.SetEffectParameters(440.0f,sampleRate); break;
-                case e_medium: lowPassFilter.SetEffectParameters(220.0f, sampleRate); break;
-                case e_large: lowPassFilter.SetEffectParameters(55.0f, sampleRate); break;
-            }
-        }
 
         // get a lock on our notes vector
         std::lock_guard<std::mutex> guard(g_notesMutex);
@@ -210,10 +144,6 @@ namespace Demo15_Filtering {
                     value += GenerateNoteSample(note, sampleRate);
                 }
             );
-
-            // apply lpf and hpf if we should
-            if (currentLPF != e_none)
-                value = lowPassFilter.AddSample(value);
 
             // copy the value to all audio channels
             for (size_t channel = 0; channel < numChannels; ++channel)
@@ -252,8 +182,8 @@ namespace Demo15_Filtering {
     }
 
     //--------------------------------------------------------------------------------------------------
-    void ReportParams () {
-        printf("Instrument: %s  LPF: %s  HPF: %s\r\n", WaveFormToString(g_currentWaveForm), EffectToString(g_lpf), EffectToString(g_hpf));
+    void ReportParams() {
+        printf("Instrument: %s\r\n", WaveFormToString(g_currentWaveForm));
     }
 
     //--------------------------------------------------------------------------------------------------
@@ -267,26 +197,6 @@ namespace Demo15_Filtering {
                 case '2': g_currentWaveForm = e_waveSaw; ReportParams(); return;
                 case '3': g_currentWaveForm = e_waveSquare; ReportParams(); return;
                 case '4': g_currentWaveForm = e_waveTriangle; ReportParams(); return;
-                case '5': {
-                    std::lock_guard<std::mutex> guard(g_notesMutex);
-                    g_notes.push_back(SNote(0.0f, e_sampleCymbals));
-                    return;
-                }
-                case '6': {
-                    std::lock_guard<std::mutex> guard(g_notesMutex);
-                    g_notes.push_back(SNote(0.0f, e_sampleVoice));
-                    return;
-                }
-                case '7': {
-                    g_lpf = EEffect((g_lpf + 1) % e_effectCount);
-                    ReportParams();
-                    return;
-                }
-                case '8': {
-                    g_hpf = EEffect((g_hpf + 1) % e_effectCount);
-                    ReportParams();
-                    return;
-                }
             }
         }
 
@@ -344,6 +254,7 @@ namespace Demo15_Filtering {
             }
         }
 
+
         // if releasing a note, we need to find and kill the flute note of the same frequency
         if (!pressed) {
             StopNote(frequency);
@@ -358,42 +269,14 @@ namespace Demo15_Filtering {
     //--------------------------------------------------------------------------------------------------
     void OnEnterDemo () {
         g_currentWaveForm = e_waveSine;
-        g_lpf = e_none;
-        g_hpf = e_none;
         printf("Letter keys to play notes.\r\nleft shift / control is super low frequency.\r\n");
         printf("1 = Sine\r\n");
         printf("2 = Band Limited Saw\r\n");
         printf("3 = Band Limited Square\r\n");
         printf("4 = Band Limited Triangle\r\n");
-        printf("5 = cymbals sample\r\n");
-        printf("6 = voice sample\r\n");
-        printf("7 = cycle Low Pass Filter\r\n");
-        printf("8 = cycle High Pass Filter\r\n");
 
         // clear all the notes out
         std::lock_guard<std::mutex> guard(g_notesMutex);
         g_notes.clear();
     }
 }
-
-/*
-
-TODO:
-* lpf doesn't seem to work correctly maybe? or it just isn't aggressive enough i dunno.
- * maybe try a biquad instead.
- * https://en.wikipedia.org/wiki/Digital_biquad_filter#Direct_form_1
- * better:
- * http://www.earlevel.com/main/2013/10/13/biquad-calculator-v2/
- * http://www.earlevel.com/main/2003/02/28/biquads/
-* make low pass and high pass work
-* make some simple repeating song that you can hear with and without filtering, showing that filtering on LFO can make it sound more interesting
-* make a mode in lpf / hpf cycling that makes them filter on a sine wave
-
-* make popping have a sound file you can play (beginning and end pop)
- * kick isn't good enough
-
-* remove the numbers from all the demos
-
-* work additive synth into presentation after you make a demo.
-
-*/

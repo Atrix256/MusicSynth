@@ -1,5 +1,5 @@
 //--------------------------------------------------------------------------------------------------
-// Demo13_Drum.cpp
+// DemoDrum.cpp
 //
 // Logic for the demo of the same name
 //
@@ -9,7 +9,7 @@
 #include "AudioEffects.h"
 #include <algorithm>
 
-namespace Demo13_Drum {
+namespace DemoDrum {
 
     enum EMode {
         e_modeSine,

@@ -68,23 +68,23 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Demo10_Delay.cpp" />
-    <ClCompile Include="Demo12_Flange.cpp" />
-    <ClCompile Include="Demo13_Drum.cpp" />
-    <ClCompile Include="Demo14_Ducking.cpp" />
-    <ClCompile Include="Demo15_Filtering.cpp" />
-    <ClCompile Include="Demo6_WaveForms.cpp" />
-    <ClCompile Include="Demo2_Popping.cpp" />
-    <ClCompile Include="Demo3_Clipping.cpp" />
-    <ClCompile Include="Demo4_Mixing.cpp" />
-    <ClCompile Include="Demo5_Envelopes.cpp" />
-    <ClCompile Include="Demo7_BLWaveForms.cpp" />
-    <ClCompile Include="Demo8_TremVib.cpp" />
-    <ClCompile Include="Demo9_FMSynth.cpp" />
+    <ClCompile Include="DemoDelay.cpp" />
+    <ClCompile Include="DemoFlange.cpp" />
+    <ClCompile Include="DemoDrum.cpp" />
+    <ClCompile Include="DemoDucking.cpp" />
+    <ClCompile Include="DemoFiltering.cpp" />
+    <ClCompile Include="DemoWaveForms.cpp" />
+    <ClCompile Include="DemoPopping.cpp" />
+    <ClCompile Include="DemoClipping.cpp" />
+    <ClCompile Include="DemoMixing.cpp" />
+    <ClCompile Include="DemoEnvelopes.cpp" />
+    <ClCompile Include="DemoBLWaveForms.cpp" />
+    <ClCompile Include="DemoTremVib.cpp" />
+    <ClCompile Include="DemoFMSynth.cpp" />
     <ClCompile Include="DemoMgr.cpp" />
-    <ClCompile Include="Demo1_Sine.cpp" />
-    <ClCompile Include="Demo11_Reverb.cpp" />
-    <ClCompile Include="Demo_Additive.cpp" />
+    <ClCompile Include="DemoSine.cpp" />
+    <ClCompile Include="DemoReverb.cpp" />
+    <ClCompile Include="DemoAdditive.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="Samples.cpp" />
     <ClCompile Include="WavFile.cpp" />

@@ -1,5 +1,5 @@
 //--------------------------------------------------------------------------------------------------
-// Demo4_Mixing.cpp
+// DemoMixing.cpp
 //
 // Logic for the demo of the same name
 //
@@ -8,7 +8,7 @@
 #include "DemoMgr.h"
 #include <algorithm>
 
-namespace Demo4_Mixing {
+namespace DemoMixing {
     struct SNote {
         SNote(float frequency) :m_frequency(frequency), m_age(0), m_dead(false) {}
         float   m_frequency;

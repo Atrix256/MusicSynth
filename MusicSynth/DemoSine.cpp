@@ -1,5 +1,5 @@
 //--------------------------------------------------------------------------------------------------
-// Demo1_Sine.cpp
+// DemoSine.cpp
 //
 // Logic for the demo of the same name
 //
@@ -7,7 +7,7 @@
 
 #include "DemoMgr.h"
 
-namespace Demo1_Sine {
+namespace DemoSine {
 
     float g_frequency = 0.0f;
 

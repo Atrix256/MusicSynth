@@ -1,57 +1,57 @@
 //--------------------------------------------------------------------------------------------------
-// Demo8_TremVib.cpp
+// DemoReverb.cpp
 //
 // Logic for the demo of the same name
 //
 //--------------------------------------------------------------------------------------------------
 
 #include "DemoMgr.h"
+#include "AudioEffects.h"
 #include <algorithm>
 
-namespace Demo8_TremVib {
+namespace DemoReverb {
 
     enum EWaveForm {
         e_waveSine,
         e_waveSaw,
         e_waveSquare,
-        e_waveTriangle
+        e_waveTriangle,
+
+        e_sampleCymbals,
+        e_sampleVoice,
     };
 
-    enum EEffectSpeed {
-        e_effectOff,
-        e_effectSlow,
-        e_effectMedium,
-        e_effectFast
-    };
+    const char* WaveFormToString (EWaveForm waveForm) {
+        switch (waveForm) {
+            case e_waveSine: return "Sine";
+            case e_waveSaw: return "Bandlimited Saw";
+            case e_waveSquare: return "Bandlimited Square";
+            case e_waveTriangle: return "Bandlimited Triangle";
+        }
+        return "???";
+    }
 
     struct SNote {
-        SNote(float frequency, EWaveForm waveForm, EEffectSpeed tremolo, EEffectSpeed vibrato)
+        SNote(float frequency, EWaveForm waveForm)
             : m_frequency(frequency)
             , m_waveForm(waveForm)
-            , m_tremolo(tremolo)
-            , m_vibrato(vibrato)
             , m_age(0)
             , m_dead(false)
             , m_wantsKeyRelease(false)
-            , m_releaseAge(0)
-            , m_phase(0.0f) {}
+            , m_releaseAge(0) {}
 
-        float           m_frequency;
-        EWaveForm       m_waveForm;
-        EEffectSpeed    m_tremolo;
-        EEffectSpeed    m_vibrato;
-        size_t          m_age;
-        bool            m_dead;
-        bool            m_wantsKeyRelease;
-        size_t          m_releaseAge;
-        float           m_phase;
+        float       m_frequency;
+        EWaveForm   m_waveForm;
+        size_t      m_age;
+        bool        m_dead;
+        bool        m_wantsKeyRelease;
+        size_t      m_releaseAge;
     };
 
     std::vector<SNote>  g_notes;
     std::mutex          g_notesMutex;
     EWaveForm           g_currentWaveForm;
-    EEffectSpeed        g_tremolo;
-    EEffectSpeed        g_vibrato;
+    bool                g_reverbOn;
 
     //--------------------------------------------------------------------------------------------------
     void OnInit() { }
@@ -107,20 +107,30 @@ namespace Demo8_TremVib {
     }
 
     //--------------------------------------------------------------------------------------------------
-    inline float GetEffectFrequency (EEffectSpeed speed) {
-        switch (speed) {
-            case e_effectOff: return 0.0;
-            case e_effectSlow: return 2.8f;
-            case e_effectMedium: return 10.0f;
-            case e_effectFast: return 20.0f;
+    inline float SampleAudioSample(SNote& note, SWavFile& sample, float ageInSeconds) {
+
+        // handle the note dieing when it is done
+        size_t sampleIndex = note.m_age*sample.m_numChannels;
+        if (sampleIndex >= sample.m_numSamples) {
+            note.m_dead = true;
+            return 0.0f;
         }
 
-        return 0.0f;
+        // calculate and apply an envelope to the sound samples
+        float envelope = Envelope4Pt(
+            ageInSeconds,
+            0.0f, 0.0f,
+            0.1f, 1.0f,
+            sample.m_lengthSeconds - 0.1f, 1.0f,
+            sample.m_lengthSeconds, 0.0f
+            );
+
+        // return the sample value multiplied by the envelope
+        return sample.m_samples[sampleIndex] * envelope;
     }
 
     //--------------------------------------------------------------------------------------------------
     inline float GenerateNoteSample (SNote& note, float sampleRate) {
-
         // calculate our age in seconds and advance our age in samples, by 1 sample
         float ageInSeconds = float(note.m_age) / sampleRate;
         ++note.m_age;
@@ -129,25 +139,17 @@ namespace Demo8_TremVib {
         // decrease note volume a bit, because the volume adjustments don't seem to be quite enough
         float envelope = GenerateEnvelope(note, ageInSeconds, sampleRate) * 0.8f;
 
-        // adjust our envelope by applying tremolo.
-        // the tremolo affects the amplitude by multiplying it between 0.5 and 1.0 in a sine wave.
-        envelope *= SineWave(ageInSeconds * GetEffectFrequency(note.m_tremolo)) * 0.25f + 0.5f;
-
-        // calculate our frequency by starting with the base note and applying vibrato.
-        // our vibratto adds plus or minus 5% of the frequency, on a sine wave.
-        float frequency = note.m_frequency;
-        frequency += frequency * SineWave(ageInSeconds * GetEffectFrequency(note.m_vibrato)) * 0.05f;
-
-        // advance phase, making sure to keep it between 0 and 1
-        note.m_phase += frequency / sampleRate;
-        note.m_phase = std::fmodf(note.m_phase, 1.0);
-
-        // generate the audio sample value for the current phase.
+        // generate the audio sample value for the current time.
+        // Note that it is ok that we are basing audio samples on age instead of phase, because the
+        // frequency never changes and we envelope the front and back to avoid popping.
+        float phase = std::fmodf(ageInSeconds * note.m_frequency, 1.0f);
         switch (note.m_waveForm) {
-            case e_waveSine:    return SineWave(note.m_phase) * envelope;
-            case e_waveSaw:     return SawWaveBandLimited(note.m_phase, 10) * envelope;
-            case e_waveSquare:  return SquareWaveBandLimited(note.m_phase, 10) * envelope;
-            case e_waveTriangle:return TriangleWaveBandLimited(note.m_phase, 10) * envelope;
+            case e_waveSine:    return SineWave(phase) * envelope;
+            case e_waveSaw:     return SawWaveBandLimited(phase, 10) * envelope;
+            case e_waveSquare:  return SquareWaveBandLimited(phase, 10) * envelope;
+            case e_waveTriangle:return TriangleWaveBandLimited(phase, 10) * envelope;
+            case e_sampleCymbals:   return SampleAudioSample(note, g_sample_cymbal, ageInSeconds);
+            case e_sampleVoice:     return SampleAudioSample(note, g_sample_legend1, ageInSeconds);
         }
 
         return 0.0f;
@@ -155,6 +157,22 @@ namespace Demo8_TremVib {
 
     //--------------------------------------------------------------------------------------------------
     void GenerateAudioSamples (float *outputBuffer, size_t framesPerBuffer, size_t numChannels, float sampleRate) {
+
+        // initialize our effects
+        static SMultiTapReverbEffect multiTapReverbEffect;
+        static bool effectsInitialized = false;
+        if (!effectsInitialized) {
+            multiTapReverbEffect.SetEffectParams(sampleRate, numChannels);
+            effectsInitialized = true;
+        }
+
+        // clear our effect buffers if reverb has changed
+        static bool lastReverbOn = false;
+        bool currentReverbOn = g_reverbOn;
+        if (currentReverbOn != lastReverbOn) {
+            lastReverbOn = currentReverbOn;
+            multiTapReverbEffect.ClearBuffer();
+        }
 
         // get a lock on our notes vector
         std::lock_guard<std::mutex> guard(g_notesMutex);
@@ -171,6 +189,10 @@ namespace Demo8_TremVib {
                     value += GenerateNoteSample(note, sampleRate);
                 }
             );
+
+            // apply effects if appropriate
+            if (currentReverbOn)
+                value = multiTapReverbEffect.AddSample(value);
 
             // copy the value to all audio channels
             for (size_t channel = 0; channel < numChannels; ++channel)
@@ -209,18 +231,32 @@ namespace Demo8_TremVib {
     }
 
     //--------------------------------------------------------------------------------------------------
+    void ReportParams () {
+        printf("Instrument: %s  Reverb: %s\r\n", WaveFormToString(g_currentWaveForm), g_reverbOn ? "On" : "Off");
+    }
+
+    //--------------------------------------------------------------------------------------------------
     void OnKey (char key, bool pressed) {
 
-        // pressing numbers switches instruments, or adjusts effects
+        // pressing numbers switches instruments
         if (pressed) {
             switch (key)
             {
-                case '1': g_currentWaveForm = e_waveSine; printf("instrument: sine\r\n"); return;
-                case '2': g_currentWaveForm = e_waveSaw; printf("instrument: bl saw\r\n"); return;
-                case '3': g_currentWaveForm = e_waveSquare; printf("instrument: bl square\r\n"); return;
-                case '4': g_currentWaveForm = e_waveTriangle; printf("instrument: bl triangle\r\n"); return;
-                case '5': g_tremolo = (EEffectSpeed)(((int)g_tremolo + 1) % (e_effectFast+1)); printf("tremolo = %i (%0.1f hz)\r\n", g_tremolo, GetEffectFrequency(g_tremolo)); return;
-                case '6': g_vibrato = (EEffectSpeed)(((int)g_vibrato + 1) % (e_effectFast + 1)); printf("vibrato = %i (%0.1f hz)\r\n", g_vibrato, GetEffectFrequency(g_vibrato)); return;
+                case '1': g_currentWaveForm = e_waveSine; ReportParams(); return;
+                case '2': g_currentWaveForm = e_waveSaw; ReportParams(); return;
+                case '3': g_currentWaveForm = e_waveSquare; ReportParams(); return;
+                case '4': g_currentWaveForm = e_waveTriangle; ReportParams(); return;
+                case '5': g_reverbOn = !g_reverbOn; ReportParams(); return;
+                case '6': {
+                    std::lock_guard<std::mutex> guard(g_notesMutex);
+                    g_notes.push_back(SNote(0.0f, e_sampleCymbals));
+                    return;
+                }
+                case '7': {
+                    std::lock_guard<std::mutex> guard(g_notesMutex);
+                    g_notes.push_back(SNote(0.0f, e_sampleVoice));
+                    return;
+                }
             }
         }
 
@@ -278,7 +314,6 @@ namespace Demo8_TremVib {
             }
         }
 
-
         // if releasing a note, we need to find and kill the flute note of the same frequency
         if (!pressed) {
             StopNote(frequency);
@@ -287,21 +322,21 @@ namespace Demo8_TremVib {
 
         // get a lock on our notes vector and add the new note
         std::lock_guard<std::mutex> guard(g_notesMutex);
-        g_notes.push_back(SNote(frequency, g_currentWaveForm, g_tremolo, g_vibrato));
+        g_notes.push_back(SNote(frequency, g_currentWaveForm));
     }
 
     //--------------------------------------------------------------------------------------------------
     void OnEnterDemo () {
         g_currentWaveForm = e_waveSine;
-        g_tremolo = e_effectOff;
-        g_vibrato = e_effectOff;
+        g_reverbOn = false;
         printf("Letter keys to play notes.\r\nleft shift / control is super low frequency.\r\n");
         printf("1 = Sine\r\n");
         printf("2 = Band Limited Saw\r\n");
         printf("3 = Band Limited Square\r\n");
         printf("4 = Band Limited Triangle\r\n");
-        printf("5 = Cycle Tremolo\r\n");
-        printf("6 = Cycle Vibrato\r\n");
+        printf("5 = Toggle Multitap Reverb\r\n");
+        printf("6 = cymbals sample\r\n");
+        printf("7 = voice sample\r\n");
 
         // clear all the notes out
         std::lock_guard<std::mutex> guard(g_notesMutex);

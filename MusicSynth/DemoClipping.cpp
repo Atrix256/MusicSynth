@@ -1,5 +1,5 @@
 //--------------------------------------------------------------------------------------------------
-// Demo3_Clipping.cpp
+// DemoClipping.cpp
 //
 // Logic for the demo of the same name
 //
@@ -7,7 +7,7 @@
 
 #include "DemoMgr.h"
 
-namespace Demo3_Clipping {
+namespace DemoClipping {
 
     float   g_frequency = 0.0f;
     float   g_volumeAmplifier = 1.0f;

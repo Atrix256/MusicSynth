@@ -1,5 +1,5 @@
 //--------------------------------------------------------------------------------------------------
-// Demo2_Popping.cpp
+// DemoPopping.cpp
 //
 // Logic for the demo of the same name
 //
@@ -7,7 +7,7 @@
 
 #include "DemoMgr.h"
 
-namespace Demo2_Popping {
+namespace DemoPopping {
 
     enum EMode {
         e_silence,

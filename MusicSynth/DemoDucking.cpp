@@ -1,5 +1,5 @@
 //--------------------------------------------------------------------------------------------------
-// Demo14_Ducking.cpp
+// DemoDucking.cpp
 //
 // Logic for the demo of the same name
 //
@@ -10,7 +10,7 @@
 #include "Samples.h"
 #include <algorithm>
 
-namespace Demo14_Ducking {
+namespace DemoDucking {
 
     enum ESample {
         e_drum1,

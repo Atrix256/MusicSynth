@@ -1,5 +1,5 @@
 //--------------------------------------------------------------------------------------------------
-// Demo_Additive.cpp
+// DemoAdditive.cpp
 //
 // Logic for the demo of the same name
 //
@@ -36,75 +36,10 @@ namespace DemoAdditive {
     void OnExit() { }
 
     //--------------------------------------------------------------------------------------------------
-    inline float GenerateEnvelope_Minimal (SNote& note, float ageInSeconds) {
-        // note lifetime
-        static const float c_noteLifeTime = 0.25f;
-
-        // envelope point calculations
-        static const float c_noteEnvelope = 0.05f;
-        static const float c_envelopePtA = 0.0f;
-        static const float c_envelopePtB = c_noteEnvelope;
-        static const float c_envelopePtC = c_noteLifeTime - c_noteEnvelope;
-        static const float c_envelopePtD = c_noteLifeTime;
-
-        // put a small envelope on the front and back
-        float envelope = Envelope4Pt(
-            ageInSeconds,
-            c_envelopePtA, 0.0f,
-            c_envelopePtB, 1.0f,
-            c_envelopePtC, 1.0f,
-            c_envelopePtD, 0.0f
-        );
-
-        // kill notes that are too old
-        if (ageInSeconds > c_noteLifeTime)
-            note.m_dead = true;
-
-        return envelope;
-    }
-
-    //--------------------------------------------------------------------------------------------------
-    inline float GenerateEnvelope_Drum (SNote& note, float ageInSeconds, bool pop) {
-        // use an envelope that sounds "drum like"
-        float envelope = Envelope4Pt(
-            ageInSeconds,
-            0.000f, pop ? 1.0f : 0.0f,  // pop by starting at full volume, if we should
-            0.010f, 1.0f,            //  10ms: attack (silence -> full volume)
-            0.020f, 1.0f,            //  10ms: hold (full volume)
-            0.195f, 0.0f             // 175ms: decay (full volume -> silence)
-        );
-
-        // kill notes that are too old
-        if (ageInSeconds > 0.195)
-            note.m_dead = true;
-
-        return envelope;
-    }
-
-    //--------------------------------------------------------------------------------------------------
-    inline float GenerateEnvelope_Cymbal (SNote& note, float ageInSeconds) {
-        // use an envelope that sounds "drum like"
-        float envelope = Envelope5Pt(
-            ageInSeconds,
-            0.000f, 0.0f,
-            0.010f, 1.0f,            //  10ms: attack (silence -> full volume)
-            0.020f, 1.0f,            //  10ms: hold (full volume)
-            0.040f, 0.2f,            //  20ms: decay1 (full volume -> less volume)
-            0.215f, 0.0f             // 175ms: decay (less volume -> silence)
-        );
-
-        // kill notes that are too old
-        if (ageInSeconds > 0.215)
-            note.m_dead = true;
-
-        return envelope;
-    }
-
-    //--------------------------------------------------------------------------------------------------
     inline float GenerateNoteSample (SNote& note, float sampleRate) {
 
         float c_decayTime = 1.5f;
-        size_t c_numHarmonics = 5;
+        size_t c_numHarmonics = 10;
 
         // calculate our age in seconds and advance our age in samples, by 1 sample
         float ageInSeconds = float(note.m_age) / sampleRate;
@@ -120,14 +55,16 @@ namespace DemoAdditive {
         // add our harmonics together
         float ret = 0.0f;
         for (size_t index = 1; index <= c_numHarmonics; ++index) {
-            float envelope = Envelope3Pt(
-                ageInSeconds,
+            float envelope = Envelope4Pt(
+                ageInSeconds * float(index),
                 0.0f, 0.0f,
-                0.01f + 0.01f * float(index), 1.0f,
-                c_decayTime / float(index), 0.0f
+                c_decayTime*0.05f, 1.0f,
+                c_decayTime*0.10f, 0.6f,
+                c_decayTime, 0.0f
             );
             float phase = std::fmodf(note.m_phase * float(index) , 1.0f);
-            ret += SquareWaveBandLimited(phase, 5) * envelope;
+            //ret += SineWave(phase) * envelope;
+            ret += SawWaveBandLimited(phase, 5) * envelope;
         }
 
         // advance phase
@@ -241,7 +178,7 @@ namespace DemoAdditive {
 
     //--------------------------------------------------------------------------------------------------
     void OnEnterDemo () {
-        printf("Letter keys to play drums.\r\nleft shift / control is super low frequency.\r\n");
+        printf("Letter keys to play notes.\r\nleft shift / control is super low frequency.\r\n");
 
         // clear all the notes out
         std::lock_guard<std::mutex> guard(g_notesMutex);

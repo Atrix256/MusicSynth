@@ -1,57 +1,76 @@
 //--------------------------------------------------------------------------------------------------
-// Demo11_Reverb.cpp
+// DemoFMSynth.cpp
 //
 // Logic for the demo of the same name
 //
 //--------------------------------------------------------------------------------------------------
 
 #include "DemoMgr.h"
-#include "AudioEffects.h"
 #include <algorithm>
 
-namespace Demo11_Reverb {
+namespace DemoFMSynth {
 
-    enum EWaveForm {
-        e_waveSine,
-        e_waveSaw,
-        e_waveSquare,
-        e_waveTriangle,
 
-        e_sampleCymbals,
-        e_sampleVoice,
+    // 300, 50 = metalic sounding organ thing
+    // 3000, 50 = smoother sounding thing.
+
+    enum EMode {
+        e_modeNormal,
+        e_modeSpeed1,
+        e_modeSpeed2,
+        e_modeSpeed3,
+        e_modeDepth2,
+        e_modeDepth3,
+
+        e_modeFM1,
+        e_modeFM2,
+        e_modeFM3,
+
+        e_modeCount
     };
 
-    const char* WaveFormToString (EWaveForm waveForm) {
-        switch (waveForm) {
-            case e_waveSine: return "Sine";
-            case e_waveSaw: return "Bandlimited Saw";
-            case e_waveSquare: return "Bandlimited Square";
-            case e_waveTriangle: return "Bandlimited Triangle";
+    const char* ModeToString (EMode mode) {
+        switch (mode) {
+            case e_modeNormal: return "Normal";
+            case e_modeSpeed1: return "Speed1 (10 hz, +- 10hz)";
+            case e_modeSpeed2: return "Speed2 (100hz, +- 10hz)";
+            case e_modeSpeed3: return "Speed3 (500hz, +- 10hz)";
+            case e_modeDepth2: return "Depth2 (500hz, +-100hz)";
+            case e_modeDepth3: return "Depth3 (500hz, +-500hz)";
+            case e_modeFM1: return "FM1 - modulator 0.5, carrier. Horn.";
+            case e_modeFM2: return "FM2 - modulator 0.1, modulator 2.5, carrier. Alien fx.";
+            case e_modeFM3: return "FN3 - modulator 2.37, carrier. Diff envelope for modulator and carrier. bell and biased inverse bell. Metal Drum.";
         }
         return "???";
     }
 
+    EMode g_mode = e_modeNormal;
+
     struct SNote {
-        SNote(float frequency, EWaveForm waveForm)
+        SNote(float frequency, EMode mode)
             : m_frequency(frequency)
-            , m_waveForm(waveForm)
+            , m_mode(mode)
             , m_age(0)
             , m_dead(false)
             , m_wantsKeyRelease(false)
-            , m_releaseAge(0) {}
+            , m_releaseAge(0)
+            , m_phase(0.0f)
+            , m_phase2(0.0f)
+            , m_phase3(0.0f) {}
 
-        float       m_frequency;
-        EWaveForm   m_waveForm;
-        size_t      m_age;
-        bool        m_dead;
-        bool        m_wantsKeyRelease;
-        size_t      m_releaseAge;
+        float           m_frequency;
+        EMode           m_mode;
+        size_t          m_age;
+        bool            m_dead;
+        bool            m_wantsKeyRelease;
+        size_t          m_releaseAge;
+        float           m_phase;
+        float           m_phase2;
+        float           m_phase3;
     };
 
     std::vector<SNote>  g_notes;
     std::mutex          g_notesMutex;
-    EWaveForm           g_currentWaveForm;
-    bool                g_reverbOn;
 
     //--------------------------------------------------------------------------------------------------
     void OnInit() { }
@@ -60,7 +79,7 @@ namespace Demo11_Reverb {
     void OnExit() { }
 
     //--------------------------------------------------------------------------------------------------
-    inline float GenerateEnvelope (SNote& note, float ageInSeconds, float sampleRate) {
+    inline float GenerateEnvelope_Simple (SNote& note, float ageInSeconds, float sampleRate) {
 
         // this just puts a short envelope on the beginning and end of the note and kills the note
         // when the release envelope is done.
@@ -107,49 +126,112 @@ namespace Demo11_Reverb {
     }
 
     //--------------------------------------------------------------------------------------------------
-    inline float SampleAudioSample(SNote& note, SWavFile& sample, float ageInSeconds) {
+    inline float GenerateEnvelope_Bell (SNote& note, float ageInSeconds) {
+        // note lifetime
+        static const float c_noteLifeTime = 1.00f;
 
-        // handle the note dieing when it is done
-        size_t sampleIndex = note.m_age*sample.m_numChannels;
-        if (sampleIndex >= sample.m_numSamples) {
-            note.m_dead = true;
-            return 0.0f;
-        }
-
-        // calculate and apply an envelope to the sound samples
-        float envelope = Envelope4Pt(
+        // use an envelope that sounds "bell like"
+        float envelope = Envelope3Pt(
             ageInSeconds,
-            0.0f, 0.0f,
-            0.1f, 1.0f,
-            sample.m_lengthSeconds - 0.1f, 1.0f,
-            sample.m_lengthSeconds, 0.0f
-            );
+            0.0f , 0.0f,
+            0.003f, 1.0f,
+            c_noteLifeTime, 0.0f
+        );
 
-        // return the sample value multiplied by the envelope
-        return sample.m_samples[sampleIndex] * envelope;
+        // kill notes that are too old
+        if (ageInSeconds > c_noteLifeTime)
+            note.m_dead = true;
+
+        return envelope;
+    }
+
+    //--------------------------------------------------------------------------------------------------
+    inline float AdvanceSineWave (float& phase, float frequency, float sampleRate) {
+
+        // calculate the sine wave value
+        float ret = SineWave(phase);
+
+        // advance phase
+        phase = std::fmodf(phase + frequency / sampleRate, 1.0f);
+
+        // return the sine wave value
+        return ret;
+    }
+
+    //--------------------------------------------------------------------------------------------------
+    inline float FMOperator (float& phase, float frequency, float modulationSample, float envelopeSample, float sampleRate) {
+        return AdvanceSineWave(phase, frequency + modulationSample, sampleRate) * envelopeSample;
     }
 
     //--------------------------------------------------------------------------------------------------
     inline float GenerateNoteSample (SNote& note, float sampleRate) {
+
         // calculate our age in seconds and advance our age in samples, by 1 sample
         float ageInSeconds = float(note.m_age) / sampleRate;
         ++note.m_age;
+        
+        // calculate frequency for specific mode
+        float frequency = note.m_frequency;
+        switch (note.m_mode) {
+            case e_modeNormal: {
+                float envelope = GenerateEnvelope_Simple(note, ageInSeconds, sampleRate);
 
-        // generate the envelope value for our note
-        // decrease note volume a bit, because the volume adjustments don't seem to be quite enough
-        float envelope = GenerateEnvelope(note, ageInSeconds, sampleRate) * 0.8f;
+                return AdvanceSineWave(note.m_phase, note.m_frequency, sampleRate) * envelope;
+            }
+            case e_modeSpeed1: {
+                float envelope = GenerateEnvelope_Simple(note, ageInSeconds, sampleRate);
 
-        // generate the audio sample value for the current time.
-        // Note that it is ok that we are basing audio samples on age instead of phase, because the
-        // frequency never changes and we envelope the front and back to avoid popping.
-        float phase = std::fmodf(ageInSeconds * note.m_frequency, 1.0f);
-        switch (note.m_waveForm) {
-            case e_waveSine:    return SineWave(phase) * envelope;
-            case e_waveSaw:     return SawWaveBandLimited(phase, 10) * envelope;
-            case e_waveSquare:  return SquareWaveBandLimited(phase, 10) * envelope;
-            case e_waveTriangle:return TriangleWaveBandLimited(phase, 10) * envelope;
-            case e_sampleCymbals:   return SampleAudioSample(note, g_sample_cymbal, ageInSeconds);
-            case e_sampleVoice:     return SampleAudioSample(note, g_sample_legend1, ageInSeconds);
+                float modulatorWave = AdvanceSineWave(note.m_phase2, 10.0f, sampleRate) * 10.0f;
+                return AdvanceSineWave(note.m_phase, note.m_frequency + modulatorWave, sampleRate) * envelope;
+            }
+            case e_modeSpeed2: {
+                float envelope = GenerateEnvelope_Simple(note, ageInSeconds, sampleRate);
+
+                float modulatorWave = AdvanceSineWave(note.m_phase2, 100.0f, sampleRate) * 10.0f;
+                return AdvanceSineWave(note.m_phase, note.m_frequency + modulatorWave, sampleRate) * envelope;
+            }
+            case e_modeSpeed3: {
+                float envelope = GenerateEnvelope_Simple(note, ageInSeconds, sampleRate);
+
+                float modulatorWave = AdvanceSineWave(note.m_phase2, 500.0f, sampleRate) * 10.0f;
+                return AdvanceSineWave(note.m_phase, note.m_frequency + modulatorWave, sampleRate) * envelope;
+            }
+            case e_modeDepth2: {
+                float envelope = GenerateEnvelope_Simple(note, ageInSeconds, sampleRate);
+
+                float modulatorWave = AdvanceSineWave(note.m_phase2, 500.0f, sampleRate) * 100.0f;
+                return AdvanceSineWave(note.m_phase, note.m_frequency + modulatorWave, sampleRate) * envelope;
+            }
+            case e_modeDepth3: {
+                float envelope = GenerateEnvelope_Simple(note, ageInSeconds, sampleRate);
+
+                float modulatorWave = AdvanceSineWave(note.m_phase2, 500.0f, sampleRate) * 500.0f;
+                return AdvanceSineWave(note.m_phase, note.m_frequency + modulatorWave, sampleRate) * envelope;
+            }
+            case e_modeFM1: {
+                float envelope = GenerateEnvelope_Simple(note, ageInSeconds, sampleRate);
+
+                float modulatorWave = AdvanceSineWave(note.m_phase2, note.m_frequency * 0.5f, sampleRate) * note.m_frequency;
+                return AdvanceSineWave(note.m_phase, note.m_frequency + modulatorWave, sampleRate) * envelope;
+
+                // the above is the same as this:
+                //float modulatorWave = FMOperator(note.m_phase2, note.m_frequency * 0.5f, 0.0f, note.m_frequency, sampleRate);
+                //return FMOperator(note.m_phase, note.m_frequency, modulatorWave, envelope, sampleRate);
+            }
+            case e_modeFM2: {
+                float envelope = GenerateEnvelope_Simple(note, ageInSeconds, sampleRate);
+
+                float modulatorWave2 = FMOperator(note.m_phase3, note.m_frequency * 0.1f, 0.0f, note.m_frequency, sampleRate);
+                float modulatorWave = FMOperator(note.m_phase2, note.m_frequency * 2.5f, modulatorWave2, note.m_frequency, sampleRate);
+                return FMOperator(note.m_phase, note.m_frequency, modulatorWave, envelope, sampleRate);
+            }
+            case e_modeFM3: {
+                float envelope = GenerateEnvelope_Bell(note, ageInSeconds);
+                float modEnvelope = Bias(1.0f - envelope, 0.9f);
+
+                float modulatorWave = FMOperator(note.m_phase2, note.m_frequency * 2.37f, 0.0f, note.m_frequency * modEnvelope, sampleRate);
+                return FMOperator(note.m_phase, note.m_frequency, modulatorWave, envelope, sampleRate);
+            }
         }
 
         return 0.0f;
@@ -157,22 +239,6 @@ namespace Demo11_Reverb {
 
     //--------------------------------------------------------------------------------------------------
     void GenerateAudioSamples (float *outputBuffer, size_t framesPerBuffer, size_t numChannels, float sampleRate) {
-
-        // initialize our effects
-        static SMultiTapReverbEffect multiTapReverbEffect;
-        static bool effectsInitialized = false;
-        if (!effectsInitialized) {
-            multiTapReverbEffect.SetEffectParams(sampleRate, numChannels);
-            effectsInitialized = true;
-        }
-
-        // clear our effect buffers if reverb has changed
-        static bool lastReverbOn = false;
-        bool currentReverbOn = g_reverbOn;
-        if (currentReverbOn != lastReverbOn) {
-            lastReverbOn = currentReverbOn;
-            multiTapReverbEffect.ClearBuffer();
-        }
 
         // get a lock on our notes vector
         std::lock_guard<std::mutex> guard(g_notesMutex);
@@ -189,10 +255,6 @@ namespace Demo11_Reverb {
                     value += GenerateNoteSample(note, sampleRate);
                 }
             );
-
-            // apply effects if appropriate
-            if (currentReverbOn)
-                value = multiTapReverbEffect.AddSample(value);
 
             // copy the value to all audio channels
             for (size_t channel = 0; channel < numChannels; ++channel)
@@ -231,32 +293,20 @@ namespace Demo11_Reverb {
     }
 
     //--------------------------------------------------------------------------------------------------
-    void ReportParams () {
-        printf("Instrument: %s  Reverb: %s\r\n", WaveFormToString(g_currentWaveForm), g_reverbOn ? "On" : "Off");
-    }
-
-    //--------------------------------------------------------------------------------------------------
     void OnKey (char key, bool pressed) {
 
-        // pressing numbers switches instruments
         if (pressed) {
-            switch (key)
-            {
-                case '1': g_currentWaveForm = e_waveSine; ReportParams(); return;
-                case '2': g_currentWaveForm = e_waveSaw; ReportParams(); return;
-                case '3': g_currentWaveForm = e_waveSquare; ReportParams(); return;
-                case '4': g_currentWaveForm = e_waveTriangle; ReportParams(); return;
-                case '5': g_reverbOn = !g_reverbOn; ReportParams(); return;
-                case '6': {
-                    std::lock_guard<std::mutex> guard(g_notesMutex);
-                    g_notes.push_back(SNote(0.0f, e_sampleCymbals));
-                    return;
-                }
-                case '7': {
-                    std::lock_guard<std::mutex> guard(g_notesMutex);
-                    g_notes.push_back(SNote(0.0f, e_sampleVoice));
-                    return;
-                }
+            if (key == '1') {
+                if (g_mode < e_modeCount - 1)
+                    g_mode = EMode(g_mode + 1);
+                printf("mode = %i %s\r\n", g_mode, ModeToString(g_mode));
+                return;
+            }
+            else if (key == '2') {
+                if (g_mode > 0)
+                    g_mode = EMode(g_mode - 1);
+                printf("mode = %i %s\r\n", g_mode, ModeToString(g_mode));
+                return;
             }
         }
 
@@ -322,21 +372,15 @@ namespace Demo11_Reverb {
 
         // get a lock on our notes vector and add the new note
         std::lock_guard<std::mutex> guard(g_notesMutex);
-        g_notes.push_back(SNote(frequency, g_currentWaveForm));
+        g_notes.push_back(SNote(frequency, g_mode));
     }
 
     //--------------------------------------------------------------------------------------------------
     void OnEnterDemo () {
-        g_currentWaveForm = e_waveSine;
-        g_reverbOn = false;
+        g_mode = e_modeNormal;
         printf("Letter keys to play notes.\r\nleft shift / control is super low frequency.\r\n");
-        printf("1 = Sine\r\n");
-        printf("2 = Band Limited Saw\r\n");
-        printf("3 = Band Limited Square\r\n");
-        printf("4 = Band Limited Triangle\r\n");
-        printf("5 = Toggle Multitap Reverb\r\n");
-        printf("6 = cymbals sample\r\n");
-        printf("7 = voice sample\r\n");
+        printf("1 = Increase Mode\r\n");
+        printf("2 = Decrease Mode\r\n");
 
         // clear all the notes out
         std::lock_guard<std::mutex> guard(g_notesMutex);

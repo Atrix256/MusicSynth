@@ -1,5 +1,5 @@
 //--------------------------------------------------------------------------------------------------
-// Demo10_Delay.cpp
+// DemoDelay.cpp
 //
 // Logic for the demo of the same name
 //
@@ -9,7 +9,7 @@
 #include "AudioEffects.h"
 #include <algorithm>
 
-namespace Demo10_Delay {
+namespace DemoDelay {
 
     enum EWaveForm {
         e_waveSine,
