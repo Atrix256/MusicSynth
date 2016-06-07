@@ -27,6 +27,7 @@ namespace DemoFiltering {
         e_small,
         e_medium,
         e_large,
+        e_LFO,
 
         e_effectCount
     };
@@ -37,6 +38,7 @@ namespace DemoFiltering {
             case e_small: return "small";
             case e_medium: return "medium";
             case e_large: return "large";
+            case e_LFO: return "LFO";
         }
         return "??";
     }
@@ -190,18 +192,21 @@ namespace DemoFiltering {
             lastLPF = currentLPF;
             switch (currentLPF) {
                 case e_none: break;
-                case e_small: 
+                case e_small: {
                     lowPassFilter1.SetEffectParams(SBiQuad::EType::e_lowPass, 1760.0f, sampleRate, 1.0f, 1.0f);
                     lowPassFilter2.SetEffectParams(SBiQuad::EType::e_lowPass, 1760.0f, sampleRate, 1.0f, 1.0f);
                     break;
-                case e_medium:
+                }
+                case e_medium: {
                     lowPassFilter1.SetEffectParams(SBiQuad::EType::e_lowPass, 880.0f, sampleRate, 1.0f, 1.0f);
                     lowPassFilter2.SetEffectParams(SBiQuad::EType::e_lowPass, 880.0f, sampleRate, 1.0f, 1.0f);
                     break;
-                case e_large:
+                }
+                case e_large: {
                     lowPassFilter1.SetEffectParams(SBiQuad::EType::e_lowPass, 220.0f, sampleRate, 1.0f, 1.0f);
                     lowPassFilter2.SetEffectParams(SBiQuad::EType::e_lowPass, 220.0f, sampleRate, 1.0f, 1.0f);
                     break;
+                }
             }
         }
 
@@ -234,6 +239,20 @@ namespace DemoFiltering {
         // for every sample in our output buffer
         for (size_t sample = 0; sample < framesPerBuffer; ++sample, outputBuffer += numChannels) {
             
+            // handle LFO controlled LPF
+            if (currentLPF == e_LFO) {
+                float LFOfrequency = std::sinf(float(CDemoMgr::GetSampleClock()) * 0.125f / sampleRate*2.0f*c_pi) * 150.0f + 300.0f;
+                lowPassFilter1.SetEffectParams(SBiQuad::EType::e_lowPass, LFOfrequency, sampleRate, 1.0f, 1.0f);
+                lowPassFilter2.SetEffectParams(SBiQuad::EType::e_lowPass, LFOfrequency, sampleRate, 1.0f, 1.0f);
+            }
+
+            // handle LFO controlled HPF
+            if (currentHPF == e_LFO) {
+                float LFOfrequency = std::sinf(float(CDemoMgr::GetSampleClock()) * 0.125 / sampleRate*2.0f*c_pi) * 225.0f + 450.0f;
+                highPassFilter1.SetEffectParams(SBiQuad::EType::e_highPass, LFOfrequency, sampleRate, 1.0f, 1.0f);
+                highPassFilter2.SetEffectParams(SBiQuad::EType::e_highPass, LFOfrequency, sampleRate, 1.0f, 1.0f);
+            }
+
             // add up all notes to get the final value.
             float value = 0.0f;
             std::for_each(
@@ -410,6 +429,7 @@ namespace DemoFiltering {
         printf("6 = voice sample\r\n");
         printf("7 = cycle Low Pass Filter\r\n");
         printf("8 = cycle High Pass Filter\r\n");
+        printf("good rhythm for LFO filters = afqt\r\n");
 
         // clear all the notes out
         std::lock_guard<std::mutex> guard(g_notesMutex);
@@ -420,17 +440,9 @@ namespace DemoFiltering {
 /*
 
 TODO:
-* lpf doesn't seem to work correctly maybe? or it just isn't aggressive enough i dunno.
- * maybe try a biquad instead.
- * https://en.wikipedia.org/wiki/Digital_biquad_filter#Direct_form_1
- * better:
- * http://www.earlevel.com/main/2013/10/13/biquad-calculator-v2/
- * http://www.earlevel.com/main/2003/02/28/biquads/
-* make low pass and high pass work
-* make some simple repeating song that you can hear with and without filtering, showing that filtering on LFO can make it sound more interesting
-* make a mode in lpf / hpf cycling that makes them filter on a sine wave
-
 * make a button to toggle an annoying buzz (vuvuzella!) and filter it out while preserving the original signal
+ * maybe with the cymbals since they are so high?
+
 
 * make popping demo have a sound file you can play (beginning and end pop)
  * kick isn't good enough

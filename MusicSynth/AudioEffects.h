@@ -242,8 +242,9 @@ struct SBiQuad {
     void SetEffectParams (EType type, float cutoffFrequency, float sampleRate, float Q, float peakGain) {
 
         // initialize our input and output parameters
-        m_xn1 = m_xn2 = 0.0f;
-        m_yn1 = m_yn2 = 0.0f;
+        //m_xn1 = m_xn2 = 0.0f;
+        //m_yn1 = m_yn2 = 0.0f;
+        // DONT do the above, so we can change the params in real time
 
         // calculate biquad coefficients
         float V = std::powf(10.0f, std::fabs(peakGain) / 20.0f);

@@ -213,6 +213,8 @@ Presentation Outline:
   * mention: subtractive synth: use filters to carve the block.  different wave forms have different frequencies at different amplitudes so sound differently when filtered.
  ? figure out biquads, or something similar?
   * can also talk about band pass and band stop filters
+ * DEMO = Filtering
+ * mention subtractive synthesis
 
 --19--
  * Positional sound
