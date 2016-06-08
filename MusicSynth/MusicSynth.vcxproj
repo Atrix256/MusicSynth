@@ -73,6 +73,7 @@
     <ClCompile Include="DemoDrum.cpp" />
     <ClCompile Include="DemoDucking.cpp" />
     <ClCompile Include="DemoFiltering.cpp" />
+    <ClCompile Include="DemoStereo.cpp" />
     <ClCompile Include="DemoWaveForms.cpp" />
     <ClCompile Include="DemoPopping.cpp" />
     <ClCompile Include="DemoClipping.cpp" />

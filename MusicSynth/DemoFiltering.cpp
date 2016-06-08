@@ -248,7 +248,7 @@ namespace DemoFiltering {
 
             // handle LFO controlled HPF
             if (currentHPF == e_LFO) {
-                float LFOfrequency = std::sinf(float(CDemoMgr::GetSampleClock()) * 0.125 / sampleRate*2.0f*c_pi) * 225.0f + 450.0f;
+                float LFOfrequency = std::sinf(float(CDemoMgr::GetSampleClock()) * 0.125f / sampleRate*2.0f*c_pi) * 225.0f + 450.0f;
                 highPassFilter1.SetEffectParams(SBiQuad::EType::e_highPass, LFOfrequency, sampleRate, 1.0f, 1.0f);
                 highPassFilter2.SetEffectParams(SBiQuad::EType::e_highPass, LFOfrequency, sampleRate, 1.0f, 1.0f);
             }
@@ -436,15 +436,3 @@ namespace DemoFiltering {
         g_notes.clear();
     }
 }
-
-/*
-
-TODO:
-* make a button to toggle an annoying buzz (vuvuzella!) and filter it out while preserving the original signal
- * maybe with the cymbals since they are so high?
-
-
-* make popping demo have a sound file you can play (beginning and end pop)
- * kick isn't good enough
-
-*/

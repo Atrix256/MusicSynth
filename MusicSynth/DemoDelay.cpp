@@ -217,8 +217,9 @@ namespace DemoDelay {
                 }
             );
 
-            // apply effects
-            value = delayEffect.AddSample(value);
+            // apply effects.  add the echo into our current sample
+            float echo = delayEffect.AddSample(value);
+            value += echo;
 
             // copy the value to all audio channels
             for (size_t channel = 0; channel < numChannels; ++channel)

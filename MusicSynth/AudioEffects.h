@@ -44,14 +44,14 @@ struct SDelayEffect {
 
     float AddSample (float sample) {
         if (!m_delayBuffer)
-            return sample;
+            return 0.0f;
+
+        // cache off our value to return
+        float ret = m_delayBuffer[m_sampleIndex];
 
         // apply feedback in the delay buffer, for whatever is currently in there.
         // also mix in our new sample.
         m_delayBuffer[m_sampleIndex] = m_delayBuffer[m_sampleIndex] * m_feedback + sample;
-
-        // cache off our value to return
-        float ret = m_delayBuffer[m_sampleIndex];
 
         // move the index to the next location
         m_sampleIndex = (m_sampleIndex + 1) % m_delayBufferSize;
@@ -68,6 +68,29 @@ struct SDelayEffect {
     size_t  m_delayBufferSize;
     float   m_feedback;
     size_t  m_sampleIndex;
+};
+
+//--------------------------------------------------------------------------------------------------
+struct SPingPongDelayEffect {
+public:
+    void SetEffectParams(float delayTime, float sampleRate, size_t numChannels, float feedback) {
+        m_lastOutRight = 0.0f;
+        m_feedback = feedback;
+        m_delayLeft.SetEffectParams(delayTime, sampleRate, numChannels, 0.0f);
+        m_delayRight.SetEffectParams(delayTime, sampleRate, numChannels, 0.0f);
+    }
+
+    void AddSample (float sample, float& outLeft, float& outRight) {
+        outLeft = m_delayLeft.AddSample(sample + m_lastOutRight);
+        outRight = m_delayRight.AddSample(outLeft * m_feedback);
+        m_lastOutRight = outRight * m_feedback;
+    }
+
+private:
+    SDelayEffect m_delayLeft;
+    SDelayEffect m_delayRight;
+    float        m_lastOutRight;
+    float        m_feedback;
 };
 
 //--------------------------------------------------------------------------------------------------

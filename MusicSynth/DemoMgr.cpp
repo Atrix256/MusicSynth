@@ -9,7 +9,7 @@
 
 EDemo CDemoMgr::s_currentDemo = e_demoFirst;
 bool CDemoMgr::s_exit = false;
-int CDemoMgr::s_volumeMultiplier = 9;
+int CDemoMgr::s_volumeMultiplier = 18;
 bool CDemoMgr::s_clippingOn = false;
 FILE* CDemoMgr::s_recordingWavFile = nullptr;
 

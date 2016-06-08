@@ -43,6 +43,7 @@ public:
     inline static void Init (float sampleRate, size_t numChannels) {
         printf("\r\n\r\n\r\n\r\n============================================\r\n");
         printf("Welcome!\r\nUp and down to adjust volume.\r\nLeft and right to change demo.\r\nEnter to toggle clipping.\r\nbackspace to toggle audio recording.\r\nEscape to exit.\r\n");
+        printf("sampleRate = %0.0f, numChannels = %i\r\n", sampleRate, numChannels);
         printf("============================================\r\n\r\n");
 
         s_sampleRate = sampleRate;
@@ -65,7 +66,7 @@ public:
 
         // pass this call onto the current demo
         switch (s_currentDemo) {
-            #define DEMO(name) case e_demo##name: printf( "Demo %i: " #name "\r\n", e_demo##name+1); Demo##name::OnEnterDemo(); break;
+            #define DEMO(name) case e_demo##name: printf( "Demo %i/%i: " #name "\r\n", e_demo##name+1, e_demoCount); Demo##name::OnEnterDemo(); break;
             #include "DemoList.h"
         }
 
@@ -86,7 +87,7 @@ public:
         // also apply clipping.
         bool clip = s_clippingOn;
         static float lastVolumeMultiplier = 1.0;
-        float volumeMultiplier = dBToAmplitude((1.0f - float(s_volumeMultiplier)/10.0f) * -60.0f);
+        float volumeMultiplier = dBToAmplitude((1.0f - float(s_volumeMultiplier)/20.0f) * -60.0f);
         for (size_t sample = 0; sample < framesPerBuffer; ++sample, outputBuffer += numChannels) {
             // lerp the volume change across the buffer
             float percent = float(sample) / float(framesPerBuffer);
@@ -141,9 +142,9 @@ public:
             case 38: {
                 if (pressed) {
                     s_volumeMultiplier++;
-                    if (s_volumeMultiplier > 10)
-                        s_volumeMultiplier = 10;
-                    printf("Master Volume = %i%%\r\n", s_volumeMultiplier * 10);
+                    if (s_volumeMultiplier > 20)
+                        s_volumeMultiplier = 20;
+                    printf("Master Volume = %i%%\r\n", s_volumeMultiplier * 5);
                 }
                 return;
             }
@@ -153,7 +154,7 @@ public:
                     s_volumeMultiplier--;
                     if (s_volumeMultiplier < 0)
                         s_volumeMultiplier = 0;
-                    printf("Master Volume = %i%%\r\n", s_volumeMultiplier * 10);
+                    printf("Master Volume = %i%%\r\n", s_volumeMultiplier * 5);
                 }
                 return;
             }
