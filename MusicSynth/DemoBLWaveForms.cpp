@@ -274,6 +274,8 @@ namespace DemoBLWaveForms {
         printf("2 = Band Limited Saw\r\n");
         printf("3 = Band Limited Square\r\n");
         printf("4 = Band Limited Triangle\r\n");
+        printf("\r\nInstructions:\r\n");
+        printf("Play diff instruments. Mention smoother sounds.\r\n");
 
         // clear all the notes out
         std::lock_guard<std::mutex> guard(g_notesMutex);

@@ -430,6 +430,8 @@ namespace DemoFiltering {
         printf("7 = cycle Low Pass Filter\r\n");
         printf("8 = cycle High Pass Filter\r\n");
         printf("good rhythm for LFO filters = afqt\r\n");
+        printf("\r\nInstructions:\r\n");
+        printf("show how lpf / hpf work, then show some notes on LFO.\r\n");
 
         // clear all the notes out
         std::lock_guard<std::mutex> guard(g_notesMutex);

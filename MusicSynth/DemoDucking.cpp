@@ -77,7 +77,7 @@ namespace DemoDucking {
 
         // return the current sample, multiplied by the envelope
         size_t sampleIndex = sample*music.m_numChannels;
-        return music.m_samples[sampleIndex] * envelope * 0.5f;
+        return music.m_samples[sampleIndex] * envelope;
     }
 
     //--------------------------------------------------------------------------------------------------
@@ -224,6 +224,8 @@ namespace DemoDucking {
         printf("QWE = drum samples\r\n");
         printf("ASD = drum samples with ducking\r\n");
         printf("ZXC = ducking only\r\n");
+        printf("\r\nInstructions:\r\n");
+        printf("show the drum samples, then show with music on, highlight the ducking.\r\n");
 
         // clear all the notes out
         std::lock_guard<std::mutex> guard(g_notesMutex);

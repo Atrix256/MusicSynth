@@ -370,6 +370,8 @@ namespace DemoDelay {
         printf("8 = Delay 1.0\r\n");
         printf("9 = cymbals sample\r\n");
         printf("0 = voice sample\r\n");
+        printf("\r\nInstructions:\r\n");
+        printf("Play some notes and samples at various delays.\r\n");
 
         // clear all the notes out
         std::lock_guard<std::mutex> guard(g_notesMutex);

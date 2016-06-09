@@ -337,6 +337,8 @@ namespace DemoReverb {
         printf("5 = Toggle Multitap Reverb\r\n");
         printf("6 = cymbals sample\r\n");
         printf("7 = voice sample\r\n");
+        printf("\r\nInstructions:\r\n");
+        printf("Play notes and samples with reverb on.\r\n");
 
         // clear all the notes out
         std::lock_guard<std::mutex> guard(g_notesMutex);

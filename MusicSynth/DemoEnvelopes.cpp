@@ -369,6 +369,8 @@ namespace DemoEnvelopes {
         printf("2 = bell\r\n");
         printf("3 = reverse bell\r\n");
         printf("4 = flute\r\n");
+        printf("\r\nInstructions:\r\n");
+        printf("Play the different instruments.\r\nmention all sine waves with envelopes on slide.\r\n");
 
         // clear all the notes out
         std::lock_guard<std::mutex> guard(g_notesMutex);

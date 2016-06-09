@@ -244,5 +244,8 @@ namespace DemoPopping {
     void OnEnterDemo () {
         g_mode = e_silence;
         printf("1 = notes with pop.\r\n2 = notes without pop.\r\n3 = note slide without pop.\r\n4 = sample with pop\r\n5 = sample without pop\r\n");
+        printf("\r\nInstructions:\r\n");
+        printf("#1 and point out popping. #2 no popping. #3 shows what you can do.\r\n");
+        printf("#4/#5 to show how envelopes can help.\r\n");
     }
 }

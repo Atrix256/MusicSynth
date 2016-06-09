@@ -59,7 +59,7 @@ namespace DemoAdditive {
                 ageInSeconds * float(index),
                 0.0f, 0.0f,
                 c_decayTime*0.05f, 1.0f,
-                c_decayTime*0.10f, 0.6f,
+                c_decayTime*0.10f, 0.5f,
                 c_decayTime, 0.0f
             );
             float phase = std::fmodf(note.m_phase * float(index) , 1.0f);
@@ -179,6 +179,8 @@ namespace DemoAdditive {
     //--------------------------------------------------------------------------------------------------
     void OnEnterDemo () {
         printf("Letter keys to play notes.\r\nleft shift / control is super low frequency.\r\n");
+        printf("\r\nInstructions:\r\n");
+        printf("Play notes. Explain how they are made\r\n");
 
         // clear all the notes out
         std::lock_guard<std::mutex> guard(g_notesMutex);

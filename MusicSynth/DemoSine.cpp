@@ -119,5 +119,8 @@ namespace DemoSine {
     void OnEnterDemo () {
         g_frequency = 0.0f;
         printf("Press the keys to play different sine tones. Space to silence.\r\nMelody1 = ZMAM x4 then Z,A, x4. left shift / control is super low frequency.\r\n");
+        printf("\r\nInstructions:\r\n");
+        printf("play different tones, explain that it's different frequencies of sine waves.\r\n");
+        printf("Show how going up an octave sounds the same.\r\n");
     }
 }

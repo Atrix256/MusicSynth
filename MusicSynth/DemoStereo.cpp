@@ -289,6 +289,7 @@ namespace DemoStereo {
         printf("2 = Toggle ping pong delay\r\n");
         printf("3 = Cymbals Sample\r\n");
         printf("4 = Voice Sample\r\n");
+        printf("\r\nInstructions:\r\n");
         printf("Interesting sound with both on = afqt also z zma z zmak, also shift,control repeated\r\n");
 
         // clear all the notes out

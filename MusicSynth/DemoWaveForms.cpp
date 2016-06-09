@@ -273,6 +273,8 @@ namespace DemoWaveForms {
         printf("2 = Saw\r\n");
         printf("3 = Square\r\n");
         printf("4 = Triangle\r\n");
+        printf("\r\nInstructions:\r\n");
+        printf("Play diff instruments. Mention harsh sounds.\r\n");
 
         // clear all the notes out
         std::lock_guard<std::mutex> guard(g_notesMutex);

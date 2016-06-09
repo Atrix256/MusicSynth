@@ -29,7 +29,7 @@ namespace DemoMixing {
     inline float GenerateNoteSample (SNote& note, float sampleRate) {
 
         // note lifetime
-        static const float c_noteLifeTime = 0.25f;
+        static const float c_noteLifeTime = 0.5f;
 
         // envelope point calculations
         static const float c_noteEnvelope = 0.05f;
@@ -179,6 +179,8 @@ namespace DemoMixing {
     //--------------------------------------------------------------------------------------------------
     void OnEnterDemo () {
         printf("Press the keys to play different sine tones polyphonically.\r\nleft shift / control is super low frequency.\r\n");
+        printf("\r\nInstructions:\r\n");
+        printf("Play some notes, show multiple playing at once.\r\n");
 
         // clear all the notes out
         std::lock_guard<std::mutex> guard(g_notesMutex);

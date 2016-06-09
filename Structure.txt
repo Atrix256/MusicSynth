@@ -1,29 +1,11 @@
 Presentation is on 7/1/16
 
 
-! make a stereo demo (or test) to see if that room does it ok.
-
-? maybe have free play at menu / demo 0? easy to get to.
- * space = cymbal
- * bottom letters = drums
- * letters = notes
- * numbers to change wave forms & toggle effects?
-
 * invite nathan and sound guys too
 
 ? lament of tim curry may make good intro music? play it looping
  * or maybe some looping mellow house music clip kinda thing?
  * maybe tim curry without the intro and outro
-
-! code that can be used for offline or real time both?
- * maybe modes should be:
-  * real time play
-  * real time play + record as wav
-  * non real time record as wav
- * maybe more work than is needed
- * maybe just a quick example of how to write a wave file?
-  * or point to blog that explains how to do it
-
 
 ! make the music that brings it all together?
  * maybe make the music as we go? i dunno...
@@ -35,18 +17,15 @@ Presentation is on 7/1/16
 ! make sure video recording and room will pick up audio ok.
  * talk to paul haban.
 
-? should we do a stereo demo? not sure if will work in room. should try
-
-? make a generic synth for people to play? make it be the first demo, even before the bg music? could invite people to play if extra time
 
 Presentation Outline:
 
---1--
+--1-- (DONE)
  * title / background music? explaining that bg music was made with the things being talked about.
  * I wanted to make this presentation since paul started doing code & tells, finally got around to it.
  * DEMO = 0_BGMusic
 
---2--
+--2-- (DONE)
  * What is audio data?
   * usually from -1.0 to 1.0. (*HDR audio, non floating point, etc)
   * changes in values are what makes sounds, a constant value is silence, no matter what the value is.
@@ -60,12 +39,12 @@ Presentation Outline:
    * an uncompressed wav file is literally just a header, and then audio samples
   * decibels vs amplitude and perception of loudness?
 
---2.5--
+--2.5-- (DONE)
  * what is a note? octave?
  * explain how to calculate the frequency of notes, and show some notes & frequencies in a table
  * note that other music styles (asian, middle eastern) have different systems.  it "sounds" right to us, but only because it's what we were taught.
 
---3--
+--3-- (DONE)
  * sine wave = gently changing up and down.  all audio data is made of sine waves.
  * more sine waves per second = higher frequency, fewer sine waves per second = lower frequency.
   * show sine tones at diff frequencies
@@ -76,7 +55,7 @@ Presentation Outline:
  ! note that keyboards are bad at pressing multiple keys at once.
   * keyboardsareevil.com
 
---4--
+--4-- (DONE)
  * Note sliding and popping: free spinning oscilators vs not.  audio needs to be smooth!
   * show playing notes one after the other, having popping
   * Note: can also come from changing volume quickly, so need to apply smooth volume over time.
@@ -86,7 +65,7 @@ Presentation Outline:
   * demo: let people hear it with popping and without.
   * DEMO = Popping
 
---5--
+--5-- (DONE)
  * clipping: when things get too high or low, it clips then, making distortion.
   * show clipped sine tones at different volumes
   * sometimes desired though.  Electric guitar distortion takes it's roots from this for instance.
@@ -94,7 +73,7 @@ Presentation Outline:
   * DEMO = Clipping
   ! Note: sounds "8 bit" cause the taller a sine wave becomes, the more "square wave" it becomes. old systems did square waves cause they are fast to compute!
 
---6--
+--6-- (DONE)
  * Mixing: add values together to mix them together and make them both be able to be heard!
   * don't thinks clip? in practice it takes quite a bit to make that happen! manual process to correct levels though. although you can do "automatic volume adjustments" both in real time and "offline" with limiters and compressors
   * don't play at full volume though?
@@ -106,18 +85,18 @@ Presentation Outline:
   * DEMO = Mixing
 
 --7--
- * Envelopes
+ * Envelopes (DONE)
   * show a few examples
   * demo: demo a few examples
   * DEMO = Envelopes
 
---8--
+--8-- (DONE)
  * Common wave forms
   * show square, saw, triangle and sine
   * demo: each wave form.  point out how similar sine and triangle are.  triangle was used because sine was too costly to compute.
  * DEMO = WaveForms
 
---9--
+--9-- (DONE)
  * Aliasing
   * nyquist frequency
   * bandlimited wave forms (w/ equations?)
@@ -125,14 +104,14 @@ Presentation Outline:
   * demo: bandlimited vs not wave forms.
  * DEMO = BLWaveForms
 
---9.5--
+--9.5-- (DONE)
  * Additive Synth
  * can analyze a sound to see what frequencies are present, at which volumes, over time.
  * pick the N most prominent frequencies, and play them, makign envelopes that match the real sound.
  * instead of analyzing you can also just throw them together.
  * DEMO = Additive
 
---10--
+--10-- (DONE)
  * Tremolo & Vibrato
   * Tremolo: modify amplitude on a low frequency sine wave
   * Vibrato: modify frequency on a low frequency sine wave
@@ -142,7 +121,7 @@ Presentation Outline:
  * note: The effects have 2 params: frequency and depth. tremolo depth = how long and high it makes it. vibrato depth = how much higher or lower the frequency gets.
  * note: i have them on a sine wave (LFO - low frequency oscilator), but you could put the effects on other wave forms, even have some other sound controlling the effect!
 
---11--
+--11-- (DONE)
  * Frequency Modulation Synthesis (FM Synth)
   * bringing tremolo up to audble frequencies = AM synth, aka amplitude modulation synth.
    * Never been able to make it sound interesting, so not so useful IMO.
@@ -152,30 +131,30 @@ Presentation Outline:
   * great read: http://the-all.org/tx81z/fm_overview.html (get some notes there, like what increasing speed vs depth does)
  * DEMO = FMSynth
 
---12--
+--12-- (DONE)
  * Delay (echo)
   * talk about having a buffer of the right number of samples with some feedback volume.  Circular buffer.
   * demo: play some notes that are aligned to timing, and some that aren't.
  * mention wet vs dry. should demo let you adjust wet vs dry?
  * DEMO = Delay
 
---13--
- * Reverb
+--13-- (DONE)
+ * Reverb (echo)
   * explain multitap.  mention convolution reverb.  Reference blog post on how to do it.
   * demo: play some sweet sweet notes with multitap reverb
   * could play multitap next to convolution reverb to show difference in quality
  ! note: multitap is aproximation of convolution. more taps = closer to convolution
  * Demo = Reverb
 
---14--
- * Flange
+--14-- (DONE)
+ * Flange (echo)
   * explain origins.  explain how to simulate.  talk about sub sample interpolation.  linear, cubic hermite, sync, etc.
   * demo: wave forms with flange.
  ! note: the sauce = "reverb + flange"
  * Demo = Flange
 
---15--
- * Basic Drum
+--15-- (DONE)
+ * Basic Drum (echo)
   * explain how to do it.
   * demo: step by step to improve it's sound.
   * mention you could use sound clips
@@ -183,14 +162,14 @@ Presentation Outline:
  ! http://blog.demofox.org/2015/03/14/diy-synth-basic-drum/
  * Demo = Drum
 
---16--
- * cymbal from static?
+--16-- (DONE)
+ * cymbal from static? (echo)
   * a 5th common wave form: "noise"
   * show how to use an envelope to make the noise meaningful
   * demo: play some drums and symbols
  * Demo = Drum, but use space bar.
 
---17--
+--17-- (DONE)
  * Automatic volume adjustments
   * briefly explain compressors and limiters
   * useful for keeping things from clipping
@@ -202,7 +181,7 @@ Presentation Outline:
  * demo: a button to toggle a melody.  a button to toggle ducking melody based on drum volume or not.
  * Demo = Ducking
 
---18--
+--18-- (DONE)
  ? space bar = cymbal, other things = drum notes. press 1 to toggle an auto melody?
  ? also on audio samples
  * could show how the same notes over and over sound more interesting with an effect powered by LFO
@@ -217,7 +196,7 @@ Presentation Outline:
  * mention subtractive synthesis
  * mention vuvuzellas
 
---19--
+--19-- (DONE)
  ! NO! this is stereo sound.
  * DEMO = Stereo
  * Positional sound
@@ -245,10 +224,7 @@ Presentation Outline:
  * arpegiators
  * automatic note timing fixing (to get timing more correct)
  * converting timing (like in 4/4, im on note 3, bar 5) to be a sample number
- * stereo sounds or higher.
-  * effects different per ear.
-  * ping pong echo between left and right ear.
- * wave file = header, and then just audio samples.
+
 
 ==============================================
 Topics Brainstorm:

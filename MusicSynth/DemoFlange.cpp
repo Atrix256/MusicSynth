@@ -377,6 +377,9 @@ namespace DemoFlange {
         printf("5 = Cycle Effect\r\n");
         printf("6 = cymbals sample\r\n");
         printf("7 = voice sample\r\n");
+        printf("\r\nInstructions:\r\n");
+        printf("Play some notes and sound samples at different params.\r\n");
+        printf("Mention 'the sauce'. Flange+reverb.\r\n");
 
         // clear all the notes out
         std::lock_guard<std::mutex> guard(g_notesMutex);

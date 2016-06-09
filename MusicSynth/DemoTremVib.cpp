@@ -302,6 +302,8 @@ namespace DemoTremVib {
         printf("4 = Band Limited Triangle\r\n");
         printf("5 = Cycle Tremolo\r\n");
         printf("6 = Cycle Vibrato\r\n");
+        printf("\r\nInstructions:\r\n");
+        printf("play notes with different settings so people can hear it.\r\n");
 
         // clear all the notes out
         std::lock_guard<std::mutex> guard(g_notesMutex);

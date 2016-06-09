@@ -174,5 +174,9 @@ namespace DemoClipping {
         g_volumeAmplifier = 1.0f;
         g_voiceState = e_stopped;
         printf("Number keys to adjust volume and adjust clipping.\r\nLetter key to play different sine tones. Space to silence.\r\nMelody1 = ZMAM. left shift / control is super low frequency.\r\nleft alt for a voice sample.\r\n");
+        printf("\r\nInstructions:\r\n");
+        printf("Turn up volume to 100, turn on clipping. Play notes. Space to silence.\r\n");
+        printf("press 3 to turn up volume more. Play notes. Space to silence.\r\n");
+        printf("Press 9 to turn up volume. press left alt for voice sample.\r\n");
     }
 }

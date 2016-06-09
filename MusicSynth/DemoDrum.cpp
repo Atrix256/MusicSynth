@@ -316,6 +316,8 @@ namespace DemoDrum {
     void OnEnterDemo () {
         g_currentMode = e_modeSine;
         printf("1 = cycle drum mode.\r\nLetter keys to play drums.\r\nleft shift / control is super low frequency.\r\nSpace for Cymbals\r\nGood Beat = cmdm cmdm\r\nAnother good beat = mcm<space> mcm<space>\r\n");
+        printf("\r\nInstructions:\r\n");
+        printf("Play some drum notes and cymbals at each stage.\r\n");
 
         // clear all the notes out
         std::lock_guard<std::mutex> guard(g_notesMutex);

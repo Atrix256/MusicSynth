@@ -381,6 +381,8 @@ namespace DemoFMSynth {
         printf("Letter keys to play notes.\r\nleft shift / control is super low frequency.\r\n");
         printf("1 = Increase Mode\r\n");
         printf("2 = Decrease Mode\r\n");
+        printf("\r\nInstructions:\r\n");
+        printf("Go through the options talking about each.\r\n");
 
         // clear all the notes out
         std::lock_guard<std::mutex> guard(g_notesMutex);
