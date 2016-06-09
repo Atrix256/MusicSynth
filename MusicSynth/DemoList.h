@@ -5,7 +5,6 @@
 //
 //--------------------------------------------------------------------------------------------------
 
-DEMO(Stereo)
 DEMO(Sine)
 DEMO(Popping)
 DEMO(Clipping)
@@ -22,5 +21,6 @@ DEMO(Flange)
 DEMO(Drum)
 DEMO(Ducking)
 DEMO(Filtering)
+DEMO(Stereo)
 
 #undef DEMO

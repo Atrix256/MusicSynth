@@ -82,7 +82,7 @@ public:
 
     void AddSample (float sample, float& outLeft, float& outRight) {
         outLeft = m_delayLeft.AddSample(sample + m_lastOutRight);
-        outRight = m_delayRight.AddSample(outLeft * m_feedback);
+        outRight = m_delayRight.AddSample(outLeft);
         m_lastOutRight = outRight * m_feedback;
     }
 

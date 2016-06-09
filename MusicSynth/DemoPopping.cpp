@@ -41,7 +41,7 @@ namespace DemoPopping {
     //--------------------------------------------------------------------------------------------------
     void SampleAudioSamples(float *outputBuffer, size_t framesPerBuffer, size_t numChannels, float sampleRate, size_t &baseIndex, bool pop) {
 
-        SWavFile& sound = g_sample_ting;
+        SWavFile& sound = g_sample_dreams;
 
         // fill the buffer
         for (size_t sample = 0; sample < framesPerBuffer; ++sample, outputBuffer += numChannels, ++baseIndex) {
@@ -58,7 +58,7 @@ namespace DemoPopping {
             // calculate and apply an envelope to the sound samples
             float envelope = 1.0f;
             if (!pop) {
-                const float c_envelopeTime = 0.005f;
+                const float c_envelopeTime = 0.03f;
                 float ageInSeconds = float(baseIndex) / sampleRate;
                 envelope = Envelope4Pt(
                     ageInSeconds,

@@ -16,5 +16,6 @@ SAMPLE(legend2)
 SAMPLE(ting)
 //SAMPLE(oakenfold)
 SAMPLE(pvd)
+SAMPLE(dreams)
 
 #undef SAMPLE

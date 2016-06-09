@@ -68,7 +68,7 @@ namespace DemoStereo {
             );
             float phase = std::fmodf(note.m_phase * float(index) , 1.0f);
             //ret += SineWave(phase) * envelope;
-            ret += SawWaveBandLimited(phase, 5) * envelope;
+            ret += SineWave(phase) * envelope;
         }
 
         // advance phase
@@ -87,7 +87,7 @@ namespace DemoStereo {
         static bool wasDelayOn = false;
         bool isDelayOn = g_pingPongDelay;
         if (isDelayOn != wasDelayOn) {
-            delayEffect.SetEffectParams(0.33f, sampleRate, numChannels, 0.125f);
+            delayEffect.SetEffectParams(0.33f, sampleRate, numChannels, 0.0625f);
             wasDelayOn = isDelayOn;
         }
 
@@ -150,8 +150,8 @@ namespace DemoStereo {
             // if sound rotation is on, make some sine/cosine tones to simulate 3d
             if (rotateSound) {
                 float timeInSeconds = float(CDemoMgr::GetSampleClock() + sample) / sampleRate;
-                valueLeft *= std::sinf(timeInSeconds*0.33f*2.0f*c_pi) * 0.45f + 0.55f;
-                valueRight *= std::cosf(timeInSeconds*0.33f*2.0f*c_pi) * 0.45f + 0.55f;
+                valueLeft *= std::sinf(timeInSeconds*0.25f*2.0f*c_pi) * 0.45f + 0.55f;
+                valueRight *= std::cosf(timeInSeconds*0.25f*2.0f*c_pi) * 0.45f + 0.55f;
             }
 
             // do ping pong delay if we should
@@ -289,26 +289,10 @@ namespace DemoStereo {
         printf("2 = Toggle ping pong delay\r\n");
         printf("3 = Cymbals Sample\r\n");
         printf("4 = Voice Sample\r\n");
-        printf("Interesting sound with both on = afqt\r\n");
+        printf("Interesting sound with both on = afqt also z zma z zmak, also shift,control repeated\r\n");
 
         // clear all the notes out
         std::lock_guard<std::mutex> guard(g_notesMutex);
         g_notes.clear();
     }
 }
-
-/*
-
-TODO:
-
-* filtering demo: make a button to toggle an annoying buzz (vuvuzella!) and filter it out while preserving the original signal
- * maybe with the cymbals since they are so high?
- * just make the presentation mention the vuvuzella?
-
-* make popping demo have a sound file you can play (beginning and end pop)
- * kick isn't good enough
-
-* move this demo to the end?
-
-
-*/

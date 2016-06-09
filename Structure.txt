@@ -215,8 +215,11 @@ Presentation Outline:
   * can also talk about band pass and band stop filters
  * DEMO = Filtering
  * mention subtractive synthesis
+ * mention vuvuzellas
 
 --19--
+ ! NO! this is stereo sound.
+ * DEMO = Stereo
  * Positional sound
   * delay per ear more important than volume changes
   * demo: some 3d sound? does it make sense to do in a large room?  maybe not...
