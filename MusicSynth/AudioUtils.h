@@ -340,3 +340,12 @@ inline float Gain (float time, float gain)
   else
       return Bias(time * 2.0f - 1.0f, 1.0f - gain) / 2.0f + 0.5f;
 }
+
+//--------------------------------------------------------------------------------------------------
+inline float ScaleBiPolarValue(float value, float min, float max)
+{
+    // converts a value in the [-1, 1] range to [min, max] range
+    // for instance, turns a sine wave lfo into the specified range
+    float percent = (value + 1.0f) * 0.5f;
+    return min + percent * (max - min);
+}

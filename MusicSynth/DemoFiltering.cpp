@@ -78,6 +78,7 @@ namespace DemoFiltering {
     EEffect             g_hpf;
 
     bool                g_rhythmOn;
+    bool                g_masterOutLPFOn;
 
     //--------------------------------------------------------------------------------------------------
     void OnInit() { }
@@ -213,8 +214,22 @@ namespace DemoFiltering {
             }
         }
 
-        float phase = std::fmodf(timeInSeconds * frequency, 1.0f) * 1.0f;
-        return SawWave(phase);
+        float phase = std::fmodf(timeInSeconds * frequency, 1.0f);
+
+        float envelope = Envelope3Pt(
+            timeInSeconds,
+            0.0f, 0.0f,
+            0.1f, 1.0f,
+            beatTime, 0.0f
+        );
+
+        switch (g_currentWaveForm) {
+            case e_waveSine:        return SineWave(phase) * envelope;
+            case e_waveSaw:         return SawWave(phase) * envelope;
+            case e_waveSquare:      return SquareWave(phase) * envelope;
+            case e_waveTriangle:    return TriangleWave(phase) * envelope;
+        }
+        return 0.0f;
     }
 
     //--------------------------------------------------------------------------------------------------
@@ -222,7 +237,16 @@ namespace DemoFiltering {
 
         // size of resonating peak
         const float Q = 2.0f;
-        static const int c_numFilters = 5;
+        static const int c_numFilters = 4;
+
+        // a LPF to apply at the end to keep things from getting too gnarly
+        static SBiQuad masterOutLPF;
+        static bool masterOutLPFInited = false;
+        if (!masterOutLPFInited) {
+            masterOutLPF.SetEffectParams(SBiQuad::EType::e_lowPass, 440.0f, sampleRate, 1.0f, 1.0f);
+            masterOutLPFInited = true;
+        }
+        bool masterOutLPFOn = g_masterOutLPFOn;
 
         // update our low pass filter
         static SBiQuad lowPassFilter[c_numFilters];
@@ -289,7 +313,8 @@ namespace DemoFiltering {
             
             // handle LFO controlled LPF
             if (currentLPF == e_LFO) {
-                float LFOfrequency = std::sinf(float(CDemoMgr::GetSampleClock()) * (1.0f / 7.0f) / sampleRate*2.0f*c_pi) * 750.0f + 1000.0f;
+                float LFOValue = std::sinf(float(CDemoMgr::GetSampleClock()) * (1.0f / 7.0f) / sampleRate*2.0f*c_pi);
+                float LFOfrequency = ScaleBiPolarValue(LFOValue, 250, 1500);
                 for (int i = 0; i < c_numFilters; ++i)
                     lowPassFilter[i].SetEffectParams(SBiQuad::EType::e_lowPass, LFOfrequency, sampleRate, Q, 1.0f);
             }
@@ -326,6 +351,10 @@ namespace DemoFiltering {
                 for (int i = 0; i < c_numFilters; ++i)
                     value = highPassFilter[i].AddSample(value);
             }
+
+            // apply the final LPF if we should
+            if (masterOutLPFOn)
+                value = masterOutLPF.AddSample(value);
 
             // copy the value to all audio channels
             for (size_t channel = 0; channel < numChannels; ++channel)
@@ -365,7 +394,7 @@ namespace DemoFiltering {
 
     //--------------------------------------------------------------------------------------------------
     void ReportParams () {
-        printf("Instrument: %s  LPF: %s  HPF: %s\r\n", WaveFormToString(g_currentWaveForm), EffectToString(g_lpf), EffectToString(g_hpf));
+        printf("Instrument: %s  LPF: %s  HPF: %s  master out lpf = %s\r\n", WaveFormToString(g_currentWaveForm), EffectToString(g_lpf), EffectToString(g_hpf), g_masterOutLPFOn ? "On" : "Off");
     }
 
     //--------------------------------------------------------------------------------------------------
@@ -401,6 +430,11 @@ namespace DemoFiltering {
                 }
                 case '9': {
                     g_rhythmOn = !g_rhythmOn;
+                    return;
+                }
+                case '0': {
+                    g_masterOutLPFOn = !g_masterOutLPFOn;
+                    ReportParams();
                     return;
                 }
             }
@@ -466,6 +500,9 @@ namespace DemoFiltering {
             return;
         }
 
+        float time = float(CDemoMgr::GetSampleClock()) / CDemoMgr::GetSampleRate();
+        printf("%c : %0.2f\r\n", key, time);
+
         // get a lock on our notes vector and add the new note
         std::lock_guard<std::mutex> guard(g_notesMutex);
         g_notes.push_back(SNote(frequency, g_currentWaveForm));
@@ -477,6 +514,7 @@ namespace DemoFiltering {
         g_lpf = e_none;
         g_hpf = e_none;
         g_rhythmOn = false;
+        g_masterOutLPFOn = false;
         printf("Letter keys to play notes.\r\nleft shift / control is super low frequency.\r\n");
         printf("1 = Sine\r\n");
         printf("2 = Saw\r\n");
@@ -487,10 +525,11 @@ namespace DemoFiltering {
         printf("7 = cycle Low Pass Filter\r\n");
         printf("8 = cycle High Pass Filter\r\n");
         printf("9 = Toggle afzv / dhcn\r\n");
+        printf("0 = toggle master out lpf\r\n");
         printf("\r\nInstructions:\r\n");
         printf("show how lpf / hpf work, then show some notes on LFO.\r\n");
         printf("sine not as interesting, not as much to cut away.\r\n");
-        printf("LFO LPF = afzv time 4 then dhcn times 4\r\n.Also = afqt\r\n");
+        printf("LFO LPF = afzv time 4 then dhcn times 4\r\nAlso = afqt\r\n");
         printf("Toggle clipping for some awesome sounds!\r\n");
 
         // clear all the notes out
