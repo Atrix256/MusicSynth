@@ -46,9 +46,9 @@ namespace DemoFiltering {
     const char* WaveFormToString (EWaveForm waveForm) {
         switch (waveForm) {
             case e_waveSine: return "Sine";
-            case e_waveSaw: return "Bandlimited Saw";
-            case e_waveSquare: return "Bandlimited Square";
-            case e_waveTriangle: return "Bandlimited Triangle";
+            case e_waveSaw: return "Saw";
+            case e_waveSquare: return "Square";
+            case e_waveTriangle: return "Triangle";
         }
         return "???";
     }
@@ -76,6 +76,8 @@ namespace DemoFiltering {
 
     EEffect             g_lpf;
     EEffect             g_hpf;
+
+    bool                g_rhythmOn;
 
     //--------------------------------------------------------------------------------------------------
     void OnInit() { }
@@ -170,9 +172,9 @@ namespace DemoFiltering {
         float phase = std::fmodf(ageInSeconds * note.m_frequency, 1.0f);
         switch (note.m_waveForm) {
             case e_waveSine:        return SineWave(phase) * envelope;
-            case e_waveSaw:         return SawWaveBandLimited(phase, 10) * envelope;
-            case e_waveSquare:      return SquareWaveBandLimited(phase, 10) * envelope;
-            case e_waveTriangle:    return TriangleWaveBandLimited(phase, 10) * envelope;
+            case e_waveSaw:         return SawWave(phase) * envelope;
+            case e_waveSquare:      return SquareWave(phase)  * envelope;
+            case e_waveTriangle:    return TriangleWave(phase)  * envelope;
             case e_sampleCymbals:   return SampleAudioSample(note, g_sample_cymbal, ageInSeconds);
             case e_sampleVoice:     return SampleAudioSample(note, g_sample_legend1, ageInSeconds);
         }
@@ -181,11 +183,49 @@ namespace DemoFiltering {
     }
 
     //--------------------------------------------------------------------------------------------------
+    float GenerateRhythm (size_t sampleIndex, float sampleRate) {
+        size_t beatSize = size_t(sampleRate) / 8;
+        float beatTime = float(beatSize) / sampleRate;
+
+        size_t beatIndex = sampleIndex / beatSize;
+        size_t beatOffset = sampleIndex % beatSize;
+        float timeInSeconds = float(beatOffset) / sampleRate;
+        
+        beatIndex = beatIndex % 32;
+
+        float frequency = 0.0f;
+        if (beatIndex < 16) {
+            beatIndex = beatIndex % 4;
+            switch (beatIndex) {
+                case 0: frequency = NoteToFrequency(2, 0); break;
+                case 1: frequency = NoteToFrequency(1, 0); break;
+                case 2: frequency = NoteToFrequency(2, 3); break;
+                case 3: frequency = NoteToFrequency(1, 3); break;
+            }
+        }
+        else {
+            beatIndex = beatIndex % 4;
+            switch (beatIndex) {
+                case 0: frequency = NoteToFrequency(2, 2); break;
+                case 1: frequency = NoteToFrequency(1, 2); break;
+                case 2: frequency = NoteToFrequency(2, 5); break;
+                case 3: frequency = NoteToFrequency(1, 5); break;
+            }
+        }
+
+        float phase = std::fmodf(timeInSeconds * frequency, 1.0f) * 1.0f;
+        return SawWave(phase);
+    }
+
+    //--------------------------------------------------------------------------------------------------
     void GenerateAudioSamples (float *outputBuffer, size_t framesPerBuffer, size_t numChannels, float sampleRate) {
 
+        // size of resonating peak
+        const float Q = 2.0f;
+        static const int c_numFilters = 5;
+
         // update our low pass filter
-        static SBiQuad lowPassFilter1;
-        static SBiQuad lowPassFilter2;
+        static SBiQuad lowPassFilter[c_numFilters];
         static EEffect lastLPF = e_none;
         EEffect currentLPF = g_lpf;
         if (currentLPF != lastLPF) {
@@ -193,25 +233,24 @@ namespace DemoFiltering {
             switch (currentLPF) {
                 case e_none: break;
                 case e_small: {
-                    lowPassFilter1.SetEffectParams(SBiQuad::EType::e_lowPass, 1760.0f, sampleRate, 1.0f, 1.0f);
-                    lowPassFilter2.SetEffectParams(SBiQuad::EType::e_lowPass, 1760.0f, sampleRate, 1.0f, 1.0f);
+                    for (int i = 0; i < c_numFilters; ++i)
+                        lowPassFilter[i].SetEffectParams(SBiQuad::EType::e_lowPass, 1760.0f, sampleRate, Q, 1.0f);
                     break;
                 }
                 case e_medium: {
-                    lowPassFilter1.SetEffectParams(SBiQuad::EType::e_lowPass, 880.0f, sampleRate, 1.0f, 1.0f);
-                    lowPassFilter2.SetEffectParams(SBiQuad::EType::e_lowPass, 880.0f, sampleRate, 1.0f, 1.0f);
+                    for (int i = 0; i < c_numFilters; ++i)
+                        lowPassFilter[i].SetEffectParams(SBiQuad::EType::e_lowPass, 880.0f, sampleRate, Q, 1.0f);
                     break;
                 }
                 case e_large: {
-                    lowPassFilter1.SetEffectParams(SBiQuad::EType::e_lowPass, 220.0f, sampleRate, 1.0f, 1.0f);
-                    lowPassFilter2.SetEffectParams(SBiQuad::EType::e_lowPass, 220.0f, sampleRate, 1.0f, 1.0f);
+                    for (int i = 0; i < c_numFilters; ++i)
+                        lowPassFilter[i].SetEffectParams(SBiQuad::EType::e_lowPass, 220.0f, sampleRate, Q, 1.0f);
                     break;
                 }
             }
         }
 
-        static SBiQuad highPassFilter1;
-        static SBiQuad highPassFilter2;
+        static SBiQuad highPassFilter[c_numFilters];
         static EEffect lastHPF = e_none;
         EEffect currentHPF = g_hpf;
         if (currentHPF != lastHPF) {
@@ -219,18 +258,27 @@ namespace DemoFiltering {
             switch (currentHPF) {
                 case e_none: break;
                 case e_small: 
-                    highPassFilter1.SetEffectParams(SBiQuad::EType::e_highPass, 220.0f, sampleRate, 1.0f, 1.0f);
-                    highPassFilter2.SetEffectParams(SBiQuad::EType::e_highPass, 220.0f, sampleRate, 1.0f, 1.0f);
+                    for (int i = 0; i < c_numFilters; ++i)
+                        highPassFilter[i].SetEffectParams(SBiQuad::EType::e_highPass, 220.0f, sampleRate, Q, 1.0f);
                     break;
                 case e_medium:
-                    highPassFilter1.SetEffectParams(SBiQuad::EType::e_highPass, 880.0f, sampleRate, 1.0f, 1.0f);
-                    highPassFilter2.SetEffectParams(SBiQuad::EType::e_highPass, 880.0f, sampleRate, 1.0f, 1.0f);
+                    for (int i = 0; i < c_numFilters; ++i)
+                        highPassFilter[i].SetEffectParams(SBiQuad::EType::e_highPass, 880.0f, sampleRate, Q, 1.0f);
                     break;
                 case e_large:
-                    highPassFilter1.SetEffectParams(SBiQuad::EType::e_highPass, 1760.0f, sampleRate, 1.0f, 1.0f);
-                    highPassFilter2.SetEffectParams(SBiQuad::EType::e_highPass, 1760.0f, sampleRate, 1.0f, 1.0f);
+                    for (int i = 0; i < c_numFilters; ++i)
+                        highPassFilter[i].SetEffectParams(SBiQuad::EType::e_highPass, 1760.0f, sampleRate, Q, 1.0f);
                     break;
             }
+        }
+
+        // handle auto generated rhythm starting and stopping
+        static bool rhythmWasOn = false;
+        bool rhythmIsOn = g_rhythmOn;
+        static size_t rhythmStart = 0;
+        if (rhythmWasOn != rhythmIsOn) {
+            rhythmWasOn = rhythmIsOn;
+            rhythmStart = CDemoMgr::GetSampleClock();
         }
 
         // get a lock on our notes vector
@@ -241,16 +289,16 @@ namespace DemoFiltering {
             
             // handle LFO controlled LPF
             if (currentLPF == e_LFO) {
-                float LFOfrequency = std::sinf(float(CDemoMgr::GetSampleClock()) * 0.125f / sampleRate*2.0f*c_pi) * 150.0f + 300.0f;
-                lowPassFilter1.SetEffectParams(SBiQuad::EType::e_lowPass, LFOfrequency, sampleRate, 1.0f, 1.0f);
-                lowPassFilter2.SetEffectParams(SBiQuad::EType::e_lowPass, LFOfrequency, sampleRate, 1.0f, 1.0f);
+                float LFOfrequency = std::sinf(float(CDemoMgr::GetSampleClock()) * (1.0f / 7.0f) / sampleRate*2.0f*c_pi) * 750.0f + 1000.0f;
+                for (int i = 0; i < c_numFilters; ++i)
+                    lowPassFilter[i].SetEffectParams(SBiQuad::EType::e_lowPass, LFOfrequency, sampleRate, Q, 1.0f);
             }
 
             // handle LFO controlled HPF
             if (currentHPF == e_LFO) {
                 float LFOfrequency = std::sinf(float(CDemoMgr::GetSampleClock()) * 0.125f / sampleRate*2.0f*c_pi) * 225.0f + 450.0f;
-                highPassFilter1.SetEffectParams(SBiQuad::EType::e_highPass, LFOfrequency, sampleRate, 1.0f, 1.0f);
-                highPassFilter2.SetEffectParams(SBiQuad::EType::e_highPass, LFOfrequency, sampleRate, 1.0f, 1.0f);
+                for (int i = 0; i < c_numFilters; ++i)
+                    highPassFilter[i].SetEffectParams(SBiQuad::EType::e_highPass, LFOfrequency, sampleRate, Q, 1.0f);
             }
 
             // add up all notes to get the final value.
@@ -263,16 +311,20 @@ namespace DemoFiltering {
                 }
             );
 
+            // generate rhythm notes if we should
+            if (rhythmIsOn)
+                value += GenerateRhythm(CDemoMgr::GetSampleClock() - rhythmStart + sample, sampleRate);
+
             // apply lpf
             if (currentLPF != e_none) {
-                value = lowPassFilter1.AddSample(value);
-                value = lowPassFilter2.AddSample(value);
+                for (int i = 0; i < c_numFilters; ++i)
+                    value = lowPassFilter[i].AddSample(value);
             }
 
             // apply hpf
             if (currentHPF != e_none) {
-                value = highPassFilter1.AddSample(value);
-                value = highPassFilter2.AddSample(value);
+                for (int i = 0; i < c_numFilters; ++i)
+                    value = highPassFilter[i].AddSample(value);
             }
 
             // copy the value to all audio channels
@@ -345,6 +397,10 @@ namespace DemoFiltering {
                 case '8': {
                     g_hpf = EEffect((g_hpf + 1) % e_effectCount);
                     ReportParams();
+                    return;
+                }
+                case '9': {
+                    g_rhythmOn = !g_rhythmOn;
                     return;
                 }
             }
@@ -420,18 +476,22 @@ namespace DemoFiltering {
         g_currentWaveForm = e_waveSine;
         g_lpf = e_none;
         g_hpf = e_none;
+        g_rhythmOn = false;
         printf("Letter keys to play notes.\r\nleft shift / control is super low frequency.\r\n");
         printf("1 = Sine\r\n");
-        printf("2 = Band Limited Saw\r\n");
-        printf("3 = Band Limited Square\r\n");
-        printf("4 = Band Limited Triangle\r\n");
+        printf("2 = Saw\r\n");
+        printf("3 = Square\r\n");
+        printf("4 = Triangle\r\n");
         printf("5 = cymbals sample\r\n");
         printf("6 = voice sample\r\n");
         printf("7 = cycle Low Pass Filter\r\n");
         printf("8 = cycle High Pass Filter\r\n");
-        printf("good rhythm for LFO filters = afqt\r\n");
+        printf("9 = Toggle afzv / dhcn\r\n");
         printf("\r\nInstructions:\r\n");
         printf("show how lpf / hpf work, then show some notes on LFO.\r\n");
+        printf("sine not as interesting, not as much to cut away.\r\n");
+        printf("LFO LPF = afzv time 4 then dhcn times 4\r\n.Also = afqt\r\n");
+        printf("Toggle clipping for some awesome sounds!\r\n");
 
         // clear all the notes out
         std::lock_guard<std::mutex> guard(g_notesMutex);
